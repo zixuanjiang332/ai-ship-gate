@@ -1,0 +1,14 @@
+name: AI Ship Gate
+description: Deterministic release gate for AI-generated code.
+inputs:
+  base:
+    description: Base ref to compare against.
+    required: false
+    default: main
+  ai:
+    description: Enable optional AI explanation.
+    required: false
+    default: "false"
+runs:
+  using: node20
+  main: dist/action.js

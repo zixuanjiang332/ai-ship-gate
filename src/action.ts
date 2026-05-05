@@ -1,4 +1,6 @@
 import { appendFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { runCheck as defaultRunCheck } from "./run.js";
 
 interface ActionOptions {
@@ -11,7 +13,7 @@ export async function runAction(options: ActionOptions = {}): Promise<number> {
   const runCheck = options.runCheck ?? defaultRunCheck;
   const cwd = env.GITHUB_WORKSPACE ?? process.cwd();
   const base = env.INPUT_BASE || undefined;
-  const ai = env.INPUT_AI === "true";
+  const ai = env.INPUT_AI?.trim().toLowerCase() === "true";
 
   const result = await runCheck({
     cwd,
@@ -27,7 +29,11 @@ export async function runAction(options: ActionOptions = {}): Promise<number> {
   return result.exitCode;
 }
 
-if (process.env.GITHUB_ACTIONS) {
+export function isDirectRun(argv: string[], importMetaUrl: string): boolean {
+  return argv[1] !== undefined && fileURLToPath(importMetaUrl) === resolve(argv[1]);
+}
+
+if (isDirectRun(process.argv, import.meta.url)) {
   runAction()
     .then((exitCode) => {
       process.exitCode = exitCode;

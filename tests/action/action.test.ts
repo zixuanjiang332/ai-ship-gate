@@ -1,8 +1,9 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { runAction } from "../../src/action.js";
+import { isDirectRun, runAction } from "../../src/action.js";
 
 let dir: string;
 let summaryPath: string;
@@ -44,5 +45,62 @@ describe("runAction", () => {
         ai: false,
       }),
     );
+  });
+
+  it.each([
+    ["true", true],
+    [" TRUE ", true],
+    ["false", false],
+    [undefined, false],
+  ])("parses INPUT_AI=%s as %s", async (inputAi, expected) => {
+    const runCheck = vi.fn().mockResolvedValue({
+      report: { verdict: "pass", findings: [] },
+      rendered: "# AI Ship Gate: PASS\n",
+      exitCode: 0,
+    });
+
+    await runAction({
+      env: {
+        GITHUB_WORKSPACE: dir,
+        INPUT_AI: inputAi,
+      },
+      runCheck,
+    });
+
+    expect(runCheck).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ai: expected,
+      }),
+    );
+  });
+
+  it("returns the exit code without writing when no GitHub step summary is configured", async () => {
+    const runCheck = vi.fn().mockResolvedValue({
+      report: { verdict: "fail", findings: [] },
+      rendered: "# AI Ship Gate: FAIL\n",
+      exitCode: 1,
+    });
+
+    const exitCode = await runAction({
+      env: {
+        GITHUB_WORKSPACE: dir,
+      },
+      runCheck,
+    });
+
+    await expect(stat(summaryPath)).rejects.toMatchObject({ code: "ENOENT" });
+    expect(exitCode).toBe(1);
+  });
+});
+
+describe("isDirectRun", () => {
+  it("returns false when GitHub Actions imports the module instead of invoking it", () => {
+    const actionPath = join(dir, "dist", "action.js");
+    expect(isDirectRun(["node", join(dir, "other.js")], pathToFileURL(actionPath).href)).toBe(false);
+  });
+
+  it("returns true when the action module is invoked as the node entrypoint", () => {
+    const actionPath = join(dir, "dist", "action.js");
+    expect(isDirectRun(["node", actionPath], pathToFileURL(actionPath).href)).toBe(true);
   });
 });

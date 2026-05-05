@@ -67,4 +67,12 @@ export interface CheckOptions {
   base?: string;
   format: OutputFormat;
   ai: boolean;
+  collectContext?: (options: { cwd: string; base?: string }) => Promise<GateContext>;
+  write?: (output: string) => void;
+}
+
+export interface CheckResult {
+  report: GateReport;
+  rendered: string;
+  exitCode: number;
 }

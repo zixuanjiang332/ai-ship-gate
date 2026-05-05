@@ -8,6 +8,7 @@ const dependencyManifests = new Set([
   "Cargo.toml",
   "pom.xml",
 ]);
+const dependencyManifestNames = [...dependencyManifests];
 const lockfiles = new Set([
   "package-lock.json",
   "pnpm-lock.yaml",
@@ -49,7 +50,8 @@ export function isTestPath(path: string): boolean {
 }
 
 export function isDependencyManifest(path: string): boolean {
-  return dependencyManifests.has(normalize(path));
+  const normalized = normalize(path);
+  return dependencyManifests.has(normalized) || dependencyManifestNames.some((manifest) => normalized.endsWith(`/${manifest}`));
 }
 
 export function isLockfile(path: string): boolean {
@@ -57,7 +59,8 @@ export function isLockfile(path: string): boolean {
 }
 
 export function isEnvExamplePath(path: string): boolean {
-  return envExamples.has(normalize(path)) || normalize(path).endsWith("/.env.example");
+  const normalized = normalize(path);
+  return envExamples.has(normalized) || normalized.endsWith("/.env.example") || normalized.endsWith("/.env.sample");
 }
 
 export function isCiOrDeployPath(path: string): boolean {
@@ -81,7 +84,7 @@ export function patchAddsFocusedOrSkippedTest(patch: string): boolean {
 
 export function patchAddsEnvUsage(patch: string): boolean {
   return addedLines(patch).some((line) =>
-    /(process\.env\.[A-Z0-9_]+|process\.env\[['"][A-Z0-9_]+['"]\]|os\.environ\[['"][A-Z0-9_]+['"]\]|getenv\(['"][A-Z0-9_]+['"]\))/.test(
+    /(process\.env\.[A-Z0-9_]+|process\.env\[['"][A-Z0-9_]+['"]\]|import\.meta\.env\.[A-Z0-9_]+|os\.environ\[['"][A-Z0-9_]+['"]\]|getenv\(['"][A-Z0-9_]+['"]\))/.test(
       line,
     ),
   );

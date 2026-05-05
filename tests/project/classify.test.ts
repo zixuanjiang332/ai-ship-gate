@@ -21,7 +21,17 @@ describe("path classifiers", () => {
   });
 
   it("detects dependency and lock files", () => {
-    for (const path of ["package.json", "requirements.txt", "pyproject.toml", "go.mod", "Cargo.toml", "pom.xml"]) {
+    for (const path of [
+      "package.json",
+      "requirements.txt",
+      "pyproject.toml",
+      "go.mod",
+      "Cargo.toml",
+      "pom.xml",
+      "packages/api/package.json",
+      "services/web/pyproject.toml",
+      "backend/pom.xml",
+    ]) {
       expect(isDependencyManifest(path)).toBe(true);
     }
 
@@ -39,7 +49,7 @@ describe("path classifiers", () => {
   });
 
   it("detects env examples and CI/deploy paths", () => {
-    for (const path of [".env.example", ".env.sample", "env.example", "config/.env.example"]) {
+    for (const path of [".env.example", ".env.sample", "env.example", "config/.env.example", "config/.env.sample"]) {
       expect(isEnvExamplePath(path)).toBe(true);
     }
 
@@ -75,6 +85,8 @@ describe("patch classifiers", () => {
   it("detects env usage", () => {
     expect(patchAddsEnvUsage("+const key = process.env.OPENAI_API_KEY;")).toBe(true);
     expect(patchAddsEnvUsage("+token = os.environ['TOKEN']")).toBe(true);
+    expect(patchAddsEnvUsage("+const url = import.meta.env.VITE_API_URL;")).toBe(true);
+    expect(patchAddsEnvUsage("+const mode = import.meta.env.MODE;")).toBe(true);
     expect(patchAddsEnvUsage("-const key = process.env.OPENAI_API_KEY;")).toBe(false);
     expect(patchAddsEnvUsage("+++ b/.env")).toBe(false);
   });

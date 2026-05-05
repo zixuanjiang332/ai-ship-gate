@@ -4,7 +4,7 @@ export function renderMarkdown(report: GateReport): string {
   const lines = [`# AI Ship Gate: ${report.verdict.toUpperCase()}`, ""];
 
   if (report.aiSummary) {
-    lines.push("## AI Summary", "", report.aiSummary, "");
+    lines.push("## AI Summary", "", sanitizeMarkdownText(report.aiSummary), "");
   }
 
   if (report.findings.length === 0) {
@@ -22,11 +22,25 @@ export function renderMarkdown(report: GateReport): string {
 
 function formatFinding(finding: Finding): string {
   return [
-    `### ${finding.severity.toUpperCase()}: ${finding.title}`,
+    `### ${finding.severity.toUpperCase()}: ${sanitizeMarkdownText(finding.title)}`,
     "",
-    `- Rule: \`${finding.id}\``,
-    `- Files: ${finding.files.map((file) => `\`${file}\``).join(", ")}`,
-    `- Reason: ${finding.message}`,
-    `- Suggestion: ${finding.suggestion}`,
+    `- Rule: ${formatInlineCode(finding.id)}`,
+    `- Files: ${finding.files.map((file) => formatInlineCode(file)).join(", ")}`,
+    `- Reason: ${sanitizeMarkdownText(finding.message)}`,
+    `- Suggestion: ${sanitizeMarkdownText(finding.suggestion)}`,
   ].join("\n");
+}
+
+function formatInlineCode(value: string): string {
+  const sanitized = sanitizeMarkdownText(value);
+  if (sanitized.includes("\\`")) return sanitized;
+  return `\`${sanitized}\``;
+}
+
+function sanitizeMarkdownText(value: string): string {
+  return value
+    .replaceAll(/[\r\n]+/g, " ")
+    .replaceAll("`", "\\`")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 }

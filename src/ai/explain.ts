@@ -7,6 +7,8 @@ interface ExplainOptions {
   fetch?: typeof fetch;
 }
 
+const defaultTimeoutMs = 10_000;
+
 export async function maybeExplainWithAi(options: ExplainOptions): Promise<string | undefined> {
   if (!options.enabled) return undefined;
 
@@ -17,10 +19,13 @@ export async function maybeExplainWithAi(options: ExplainOptions): Promise<strin
   const baseUrl = (env.OPENAI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/$/, "");
   const model = env.OPENAI_MODEL ?? "gpt-4.1-mini";
   const fetchImpl = options.fetch ?? fetch;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs(env));
 
   try {
     const response = await fetchImpl(`${baseUrl}/chat/completions`, {
       method: "POST",
+      signal: controller.signal,
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
@@ -50,5 +55,16 @@ export async function maybeExplainWithAi(options: ExplainOptions): Promise<strin
     return data.choices?.[0]?.message?.content?.trim() || undefined;
   } catch {
     return undefined;
+  } finally {
+    clearTimeout(timeout);
   }
+}
+
+function timeoutMs(env: Record<string, string | undefined>): number {
+  const value = env.SHIPGATE_AI_TIMEOUT_MS;
+  if (!value) return defaultTimeoutMs;
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return defaultTimeoutMs;
+  return parsed;
 }

@@ -1,0 +1,103 @@
+const sourcePrefixes = ["src/", "app/", "lib/", "server/", "packages/"];
+const testPattern = /(^|\/)(__tests__|tests?)\/|(\.|-)(test|spec)\.[cm]?[jt]sx?$/i;
+const dependencyManifests = new Set([
+  "package.json",
+  "requirements.txt",
+  "pyproject.toml",
+  "go.mod",
+  "Cargo.toml",
+  "pom.xml",
+]);
+const lockfiles = new Set([
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  "yarn.lock",
+  "poetry.lock",
+  "uv.lock",
+  "go.sum",
+  "Cargo.lock",
+]);
+const envExamples = new Set([".env.example", ".env.sample", "env.example"]);
+const securityTerms = [
+  "auth",
+  "permission",
+  "permissions",
+  "role",
+  "roles",
+  "payment",
+  "stripe",
+  "crypto",
+  "cors",
+  "sql",
+  "query",
+  "upload",
+  "token",
+  "session",
+];
+
+function normalize(path: string): string {
+  return path.replaceAll("\\", "/");
+}
+
+export function isSourcePath(path: string): boolean {
+  const normalized = normalize(path);
+  return sourcePrefixes.some((prefix) => normalized.startsWith(prefix)) && !isTestPath(normalized);
+}
+
+export function isTestPath(path: string): boolean {
+  return testPattern.test(normalize(path));
+}
+
+export function isDependencyManifest(path: string): boolean {
+  return dependencyManifests.has(normalize(path));
+}
+
+export function isLockfile(path: string): boolean {
+  return lockfiles.has(normalize(path));
+}
+
+export function isEnvExamplePath(path: string): boolean {
+  return envExamples.has(normalize(path)) || normalize(path).endsWith("/.env.example");
+}
+
+export function isCiOrDeployPath(path: string): boolean {
+  const normalized = normalize(path);
+  return (
+    normalized.startsWith(".github/workflows/") ||
+    normalized === "Dockerfile" ||
+    normalized.endsWith("/Dockerfile") ||
+    normalized === "docker-compose.yml" ||
+    normalized === "docker-compose.yaml" ||
+    normalized.includes("/deploy/") ||
+    normalized.includes("/deployment/")
+  );
+}
+
+export function patchAddsFocusedOrSkippedTest(patch: string): boolean {
+  return addedLines(patch).some((line) => /\.(only|skip)\s*\(|\b(xit|fit)\s*\(/.test(line));
+}
+
+export function patchAddsEnvUsage(patch: string): boolean {
+  return addedLines(patch).some((line) =>
+    /(process\.env\.[A-Z0-9_]+|process\.env\[['"][A-Z0-9_]+['"]\]|os\.environ\[['"][A-Z0-9_]+['"]\]|getenv\(['"][A-Z0-9_]+['"]\))/.test(
+      line,
+    ),
+  );
+}
+
+export function patchContainsSecret(patch: string): boolean {
+  return addedLines(patch).some((line) =>
+    /(api[_-]?key|secret|token|password)\s*[:=]\s*['"]?[A-Za-z0-9_\-]{20,}|sk-[A-Za-z0-9]{20,}/i.test(line),
+  );
+}
+
+export function touchesSecuritySensitiveArea(path: string, patch: string): boolean {
+  const haystack = `${normalize(path)}\n${patch}`.toLowerCase();
+  return securityTerms.some((term) => haystack.includes(term));
+}
+
+function addedLines(patch: string): string[] {
+  return patch
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("+") && !line.startsWith("+++"));
+}

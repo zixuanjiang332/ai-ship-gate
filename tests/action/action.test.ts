@@ -1,13 +1,16 @@
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
+import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parse } from "yaml";
 import { isDirectRun, runAction } from "../../src/action.js";
 
 let dir: string;
 let summaryPath: string;
+const execFileAsync = promisify(execFile);
 
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), "shipgate-action-"));
@@ -109,5 +112,44 @@ describe("isDirectRun", () => {
   it("returns true when the action module is invoked as the node entrypoint", () => {
     const actionPath = join(dir, "dist", "action.js");
     expect(isDirectRun(["node", actionPath], pathToFileURL(actionPath).href)).toBe(true);
+  });
+});
+
+describe("release action runtime", () => {
+  it("runs from a release directory without node_modules", async () => {
+    const releaseDir = await mkdtemp(join(tmpdir(), "shipgate-release-"));
+    const workspaceDir = await mkdtemp(join(tmpdir(), "shipgate-workspace-"));
+    const releaseSummaryPath = join(releaseDir, "summary.md");
+
+    try {
+      await cp("dist", join(releaseDir, "dist"), { recursive: true });
+      await writeFile(join(releaseDir, "package.json"), JSON.stringify({ type: "module" }));
+
+      await execFileAsync("git", ["init"], { cwd: workspaceDir });
+      await writeFile(join(workspaceDir, "README.md"), "# Fixture\n");
+      await execFileAsync("git", ["add", "README.md"], { cwd: workspaceDir });
+      await execFileAsync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "fixture"],
+        { cwd: workspaceDir },
+      );
+
+      const result = await execFileAsync("node", [join(releaseDir, "dist", "action.js")], {
+        cwd: releaseDir,
+        env: {
+          ...process.env,
+          GITHUB_WORKSPACE: workspaceDir,
+          GITHUB_STEP_SUMMARY: releaseSummaryPath,
+          INPUT_BASE: "HEAD",
+          INPUT_AI: "false",
+        },
+      });
+
+      expect(result.stderr).not.toContain("ERR_MODULE_NOT_FOUND");
+      await expect(readFile(releaseSummaryPath, "utf8")).resolves.toContain("# AI Ship Gate: PASS");
+    } finally {
+      await rm(releaseDir, { recursive: true, force: true });
+      await rm(workspaceDir, { recursive: true, force: true });
+    }
   });
 });

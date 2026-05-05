@@ -38,6 +38,8 @@ Set `failOn: warn` to make WARN verdicts exit 1 too.
 
 ## GitHub Action
 
+Replace `owner-name` with the GitHub user or organization that publishes the action. In CI, prefer `origin/main` as the base ref after `actions/checkout`; local CLI runs commonly use `main`.
+
 ```yaml
 name: AI Ship Gate
 
@@ -53,7 +55,7 @@ jobs:
           fetch-depth: 0
       - uses: owner-name/ai-ship-gate@v1
         with:
-          base: main
+          base: origin/main
           ai: false
 ```
 
@@ -86,6 +88,8 @@ jobs:
 - Env risk
 - CI/deploy/Docker risk
 - Security risk
+
+See [examples/risky-diff.md](examples/risky-diff.md) for a compact PR scenario that triggers multiple rules.
 
 ## Optional AI Mode
 

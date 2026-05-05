@@ -68,6 +68,8 @@ export function isCiOrDeployPath(path: string): boolean {
     normalized.endsWith("/Dockerfile") ||
     normalized === "docker-compose.yml" ||
     normalized === "docker-compose.yaml" ||
+    normalized.startsWith("deploy/") ||
+    normalized.startsWith("deployment/") ||
     normalized.includes("/deploy/") ||
     normalized.includes("/deployment/")
   );

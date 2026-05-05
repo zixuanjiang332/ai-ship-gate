@@ -21,16 +21,40 @@ describe("path classifiers", () => {
   });
 
   it("detects dependency and lock files", () => {
-    expect(isDependencyManifest("package.json")).toBe(true);
-    expect(isDependencyManifest("pyproject.toml")).toBe(true);
-    expect(isLockfile("package-lock.json")).toBe(true);
-    expect(isLockfile("poetry.lock")).toBe(true);
+    for (const path of ["package.json", "requirements.txt", "pyproject.toml", "go.mod", "Cargo.toml", "pom.xml"]) {
+      expect(isDependencyManifest(path)).toBe(true);
+    }
+
+    for (const path of [
+      "package-lock.json",
+      "pnpm-lock.yaml",
+      "yarn.lock",
+      "poetry.lock",
+      "uv.lock",
+      "go.sum",
+      "Cargo.lock",
+    ]) {
+      expect(isLockfile(path)).toBe(true);
+    }
   });
 
   it("detects env examples and CI/deploy paths", () => {
-    expect(isEnvExamplePath(".env.example")).toBe(true);
-    expect(isCiOrDeployPath(".github/workflows/ci.yml")).toBe(true);
-    expect(isCiOrDeployPath("Dockerfile")).toBe(true);
+    for (const path of [".env.example", ".env.sample", "env.example", "config/.env.example"]) {
+      expect(isEnvExamplePath(path)).toBe(true);
+    }
+
+    for (const path of [
+      ".github/workflows/ci.yml",
+      "Dockerfile",
+      "services/api/Dockerfile",
+      "docker-compose.yml",
+      "docker-compose.yaml",
+      "deploy/app.yaml",
+      "deployment/app.yaml",
+      "infra/deploy/app.yaml",
+    ]) {
+      expect(isCiOrDeployPath(path)).toBe(true);
+    }
   });
 
   it("detects security-sensitive paths", () => {
@@ -44,15 +68,21 @@ describe("patch classifiers", () => {
   it("detects focused or skipped tests", () => {
     expect(patchAddsFocusedOrSkippedTest("+it.only('works', () => {})")).toBe(true);
     expect(patchAddsFocusedOrSkippedTest("+describe.skip('slow', () => {})")).toBe(true);
+    expect(patchAddsFocusedOrSkippedTest("-it.only('old', () => {})")).toBe(false);
+    expect(patchAddsFocusedOrSkippedTest("+++ b/tests/auth.test.ts")).toBe(false);
   });
 
   it("detects env usage", () => {
     expect(patchAddsEnvUsage("+const key = process.env.OPENAI_API_KEY;")).toBe(true);
     expect(patchAddsEnvUsage("+token = os.environ['TOKEN']")).toBe(true);
+    expect(patchAddsEnvUsage("-const key = process.env.OPENAI_API_KEY;")).toBe(false);
+    expect(patchAddsEnvUsage("+++ b/.env")).toBe(false);
   });
 
   it("detects likely secrets", () => {
     expect(patchContainsSecret("+OPENAI_API_KEY=sk-1234567890abcdef1234567890abcdef")).toBe(true);
     expect(patchContainsSecret("+const label = 'safe';")).toBe(false);
+    expect(patchContainsSecret("-OPENAI_API_KEY=sk-1234567890abcdef1234567890abcdef")).toBe(false);
+    expect(patchContainsSecret("+++ b/.env")).toBe(false);
   });
 });

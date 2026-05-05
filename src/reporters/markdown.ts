@@ -41,6 +41,11 @@ function sanitizeMarkdownText(value: string): string {
   return value
     .replaceAll(/[\r\n]+/g, " ")
     .replaceAll("`", "\\`")
+    .replaceAll("!", "\\!")
+    .replaceAll("[", "\\[")
+    .replaceAll("]", "\\]")
+    .replaceAll("(", "\\(")
+    .replaceAll(")", "\\)")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
 }

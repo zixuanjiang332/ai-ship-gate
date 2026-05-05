@@ -5,6 +5,7 @@ import type { ChangedFile, GateContext, ProjectMetadata } from "../domain/types.
 type Exec = (args: string[], cwd: string) => Promise<string>;
 
 const execFileAsync = promisify(execFile);
+const GIT_STDIO_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
 
 export async function collectGitContext(options: {
   cwd: string;
@@ -126,6 +127,7 @@ async function resolveDefaultBase(exec: Exec, cwd: string): Promise<string> {
 }
 
 async function git(args: string[], cwd: string): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, { cwd });
+  // Large staged diffs are expected input for the gate; keep execFile from failing before rules run.
+  const { stdout } = await execFileAsync("git", args, { cwd, maxBuffer: GIT_STDIO_MAX_BUFFER_BYTES });
   return String(stdout);
 }

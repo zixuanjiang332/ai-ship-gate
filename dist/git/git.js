@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
+const GIT_STDIO_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
 export async function collectGitContext(options) {
     const exec = options.exec ?? git;
     const repoRoot = (await exec(["rev-parse", "--show-toplevel"], options.cwd)).trim();
@@ -104,7 +105,8 @@ async function resolveDefaultBase(exec, cwd) {
     throw new Error("Unable to resolve a base ref. Pass --base <ref>.");
 }
 async function git(args, cwd) {
-    const { stdout } = await execFileAsync("git", args, { cwd });
+    // Large staged diffs are expected input for the gate; keep execFile from failing before rules run.
+    const { stdout } = await execFileAsync("git", args, { cwd, maxBuffer: GIT_STDIO_MAX_BUFFER_BYTES });
     return String(stdout);
 }
 //# sourceMappingURL=git.js.map

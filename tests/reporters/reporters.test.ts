@@ -64,6 +64,32 @@ describe("reporters", () => {
     expect(markdown).not.toContain("<img>");
   });
 
+  it("escapes active Markdown image and link syntax in untrusted fields", () => {
+    const markdown = renderMarkdown({
+      verdict: "fail",
+      findings: [
+        {
+          id: "rule`![pixel](https://example.com/rule.png)`",
+          severity: "fail",
+          title: "Injected title",
+          message: "Loads ![pixel](https://example.com/pixel.png) and [docs](https://example.com/docs).",
+          files: ["src/`[file](https://example.com/file.ts)`"],
+          suggestion: "Click [fix](https://example.com/fix) or render ![fix](https://example.com/fix.png).",
+        },
+      ],
+      aiSummary: "Summary ![pixel](https://example.com/summary.png) [docs](https://example.com/summary).",
+    });
+
+    expect(markdown).not.toContain("![pixel](https://example.com/summary.png)");
+    expect(markdown).not.toContain("[docs](https://example.com/summary)");
+    expect(markdown).not.toContain("![pixel](https://example.com/pixel.png)");
+    expect(markdown).not.toContain("[docs](https://example.com/docs)");
+    expect(markdown).not.toContain("[fix](https://example.com/fix)");
+    expect(markdown).not.toContain("![fix](https://example.com/fix.png)");
+    expect(markdown).not.toContain("![pixel](https://example.com/rule.png)");
+    expect(markdown).not.toContain("[file](https://example.com/file.ts)");
+  });
+
   it("neutralizes Markdown block starts in AI summary", () => {
     const markdown = renderMarkdown({
       verdict: "warn",

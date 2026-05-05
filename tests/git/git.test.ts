@@ -1,5 +1,12 @@
+import { execFile } from "node:child_process";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
 import { describe, expect, it, vi } from "vitest";
 import { collectGitContext, parseChangedFiles, parseNameStatus } from "../../src/git/git.js";
+
+const execFileAsync = promisify(execFile);
 
 describe("parseNameStatus", () => {
   it("parses modified, added, deleted, and renamed files", () => {
@@ -214,4 +221,36 @@ describe("collectGitContext", () => {
     );
     expect(exec).toHaveBeenNthCalledWith(5, ["merge-base", "HEAD", "origin/master"], "/repo");
   });
+
+  it(
+    "collects staged source diffs larger than the default exec buffer",
+    async () => {
+      const repo = await mkdtemp(join(tmpdir(), "shipgate-large-diff-"));
+
+      try {
+        await execFileAsync("git", ["init"], { cwd: repo });
+        await writeFile(join(repo, "README.md"), "# Fixture\n");
+        await execFileAsync("git", ["add", "README.md"], { cwd: repo });
+        await execFileAsync(
+          "git",
+          ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "baseline"],
+          { cwd: repo },
+        );
+
+        await mkdir(join(repo, "src"));
+        const largeSource = `export const payload = ${JSON.stringify("x".repeat(1_600_000))};\n`;
+        await writeFile(join(repo, "src", "big.ts"), largeSource);
+        await execFileAsync("git", ["add", "src/big.ts"], { cwd: repo });
+
+        const context = await collectGitContext({ cwd: repo, base: "HEAD" });
+
+        expect(context.changedFiles).toHaveLength(1);
+        expect(context.changedFiles[0]).toMatchObject({ path: "src/big.ts", status: "added" });
+        expect(context.changedFiles[0]?.patch.length).toBeGreaterThan(1_500_000);
+      } finally {
+        await rm(repo, { recursive: true, force: true });
+      }
+    },
+    30_000,
+  );
 });

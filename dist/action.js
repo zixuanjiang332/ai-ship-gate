@@ -7594,6 +7594,7 @@ function shouldExitWithFailure(verdict, failOn) {
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 var execFileAsync = promisify(execFile);
+var GIT_STDIO_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
 async function collectGitContext(options) {
   const exec = options.exec ?? git;
   const repoRoot = (await exec(["rev-parse", "--show-toplevel"], options.cwd)).trim();
@@ -7686,7 +7687,7 @@ async function resolveDefaultBase(exec, cwd) {
   throw new Error("Unable to resolve a base ref. Pass --base <ref>.");
 }
 async function git(args, cwd) {
-  const { stdout } = await execFileAsync("git", args, { cwd });
+  const { stdout } = await execFileAsync("git", args, { cwd, maxBuffer: GIT_STDIO_MAX_BUFFER_BYTES });
   return String(stdout);
 }
 
@@ -7728,7 +7729,7 @@ function formatInlineCode(value) {
   return `\`${sanitized}\``;
 }
 function sanitizeMarkdownText(value) {
-  return value.replaceAll(/[\r\n]+/g, " ").replaceAll("`", "\\`").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  return value.replaceAll(/[\r\n]+/g, " ").replaceAll("`", "\\`").replaceAll("!", "\\!").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 function sanitizeMarkdownBlockText(value) {
   return sanitizeMarkdownText(value).replace(

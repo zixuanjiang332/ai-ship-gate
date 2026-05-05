@@ -64,6 +64,19 @@ describe("reporters", () => {
     expect(markdown).not.toContain("<img>");
   });
 
+  it("neutralizes Markdown block starts in AI summary", () => {
+    const markdown = renderMarkdown({
+      verdict: "warn",
+      findings: [],
+      aiSummary: "# fake\n- fake",
+    });
+    const lines = markdown.split("\n");
+
+    expect(markdown).toContain("\\# fake - fake");
+    expect(lines.filter((line) => line === "# fake")).toEqual([]);
+    expect(lines.filter((line) => line === "- fake")).toEqual([]);
+  });
+
   it("strips terminal control characters from untrusted fields", () => {
     const terminal = renderTerminal(
       {

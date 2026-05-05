@@ -4,7 +4,7 @@ export function renderMarkdown(report: GateReport): string {
   const lines = [`# AI Ship Gate: ${report.verdict.toUpperCase()}`, ""];
 
   if (report.aiSummary) {
-    lines.push("## AI Summary", "", sanitizeMarkdownText(report.aiSummary), "");
+    lines.push("## AI Summary", "", sanitizeMarkdownBlockText(report.aiSummary), "");
   }
 
   if (report.findings.length === 0) {
@@ -43,4 +43,11 @@ function sanitizeMarkdownText(value: string): string {
     .replaceAll("`", "\\`")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+}
+
+function sanitizeMarkdownBlockText(value: string): string {
+  return sanitizeMarkdownText(value).replace(
+    /^(\s*)((?:#{1,6}|[-*+>])(?=\s)|\d+\.(?=\s)|-{3,}(?=\s|$))/,
+    "$1\\$2",
+  );
 }

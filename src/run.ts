@@ -8,9 +8,9 @@ import { runRules } from "./rules/engine.js";
 import { defaultRules } from "./rules/index.js";
 
 export async function runCheck(options: CheckOptions): Promise<CheckResult> {
-  const config = await loadConfig(options.cwd);
   const collectContext = options.collectContext ?? collectGitContext;
   const context = await collectContext({ cwd: options.cwd, base: options.base });
+  const config = await loadConfig(context.repoRoot);
   const enabledRules = defaultRules.filter((rule) => isRuleEnabled(rule.check, config.checks));
   const findings = runRules(context, enabledRules);
   const verdict = aggregateVerdict(findings);

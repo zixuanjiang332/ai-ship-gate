@@ -1,4 +1,8 @@
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { parseOutputFormat } from "../../src/cli.js";
 import type { GateContext } from "../../src/domain/types.js";
 import { runCheck } from "../../src/run.js";
 
@@ -58,5 +62,61 @@ describe("runCheck", () => {
 
     expect(result.report.verdict).toBe("fail");
     expect(result.exitCode).toBe(1);
+  });
+
+  it("loads config from the collected repo root", async () => {
+    const repoRoot = await mkdtemp(join(tmpdir(), "shipgate-root-config-"));
+    const cwd = join(repoRoot, "packages", "app");
+    await mkdir(cwd, { recursive: true });
+    await writeFile(join(repoRoot, "shipgate.config.yaml"), "failOn: warn\n");
+
+    const collectContext = vi.fn().mockResolvedValue({
+      ...context,
+      repoRoot,
+    });
+
+    const result = await runCheck({
+      cwd,
+      format: "json",
+      ai: false,
+      collectContext,
+      write: vi.fn(),
+    });
+
+    expect(result.report.verdict).toBe("warn");
+    expect(result.exitCode).toBe(1);
+  });
+
+  it("does not run disabled checks", async () => {
+    const repoRoot = await mkdtemp(join(tmpdir(), "shipgate-disabled-check-"));
+    await writeFile(join(repoRoot, "shipgate.config.yaml"), "checks:\n  tests: false\n");
+
+    const collectContext = vi.fn().mockResolvedValue({
+      ...context,
+      repoRoot,
+    });
+
+    const result = await runCheck({
+      cwd: repoRoot,
+      format: "json",
+      ai: false,
+      collectContext,
+      write: vi.fn(),
+    });
+
+    expect(result.report.verdict).toBe("pass");
+    expect(result.report.findings).toEqual([]);
+  });
+});
+
+describe("parseOutputFormat", () => {
+  it("accepts supported output formats", () => {
+    expect(parseOutputFormat("terminal")).toBe("terminal");
+    expect(parseOutputFormat("json")).toBe("json");
+    expect(parseOutputFormat("markdown")).toBe("markdown");
+  });
+
+  it("rejects unsupported output formats", () => {
+    expect(() => parseOutputFormat("foo")).toThrow("Invalid format");
   });
 });

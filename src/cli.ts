@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 import { writeFile } from "node:fs/promises";
-import { Command } from "commander";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { Command, InvalidArgumentError } from "commander";
 import { defaultConfig } from "./config/defaults.js";
+import type { OutputFormat } from "./domain/types.js";
 import { runCheck } from "./run.js";
 
 const program = new Command();
+const outputFormats = ["terminal", "json", "markdown"] as const;
 
 program
   .name("shipgate")
@@ -15,9 +19,9 @@ program
   .command("check")
   .description("Check the current git diff for release risk.")
   .option("--base <ref>", "Base ref to compare against")
-  .option("--format <format>", "Output format: terminal, json, markdown", "terminal")
+  .option("--format <format>", "Output format: terminal, json, markdown", parseOutputFormat, "terminal")
   .option("--ai", "Enable optional AI explanation", false)
-  .action(async (options: { base?: string; format: "terminal" | "json" | "markdown"; ai: boolean }) => {
+  .action(async (options: { base?: string; format: OutputFormat; ai: boolean }) => {
     const result = await runCheck({
       cwd: process.cwd(),
       base: options.base,
@@ -48,8 +52,26 @@ program
     console.log("Created shipgate.config.yaml");
   });
 
-program.parseAsync(process.argv).catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(message);
-  process.exitCode = 1;
-});
+export function parseOutputFormat(value: string): OutputFormat {
+  if (isOutputFormat(value)) {
+    return value;
+  }
+
+  throw new InvalidArgumentError(`Invalid format '${value}'. Expected one of: ${outputFormats.join(", ")}.`);
+}
+
+if (isCliEntry()) {
+  program.parseAsync(process.argv).catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    process.exitCode = 1;
+  });
+}
+
+function isOutputFormat(value: string): value is OutputFormat {
+  return outputFormats.includes(value as OutputFormat);
+}
+
+function isCliEntry(): boolean {
+  return process.argv[1] !== undefined && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
+}

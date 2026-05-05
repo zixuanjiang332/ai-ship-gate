@@ -4,7 +4,7 @@ inputs:
   base:
     description: Base ref to compare against.
     required: false
-    default: main
+    default: origin/main
   ai:
     description: Enable optional AI explanation.
     required: false

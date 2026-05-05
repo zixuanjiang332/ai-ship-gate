@@ -1,0 +1,10 @@
+export declare function isSourcePath(path: string): boolean;
+export declare function isTestPath(path: string): boolean;
+export declare function isDependencyManifest(path: string): boolean;
+export declare function isLockfile(path: string): boolean;
+export declare function isEnvExamplePath(path: string): boolean;
+export declare function isCiOrDeployPath(path: string): boolean;
+export declare function patchAddsFocusedOrSkippedTest(patch: string): boolean;
+export declare function patchAddsEnvUsage(patch: string): boolean;
+export declare function patchContainsSecret(patch: string): boolean;
+export declare function touchesSecuritySensitiveArea(path: string, patch: string): boolean;

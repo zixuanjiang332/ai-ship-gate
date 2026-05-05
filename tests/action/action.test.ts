@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { parse } from "yaml";
 import { isDirectRun, runAction } from "../../src/action.js";
 
 let dir: string;
@@ -29,7 +30,7 @@ describe("runAction", () => {
       env: {
         GITHUB_WORKSPACE: dir,
         GITHUB_STEP_SUMMARY: summaryPath,
-        INPUT_BASE: "main",
+        INPUT_BASE: "origin/main",
         INPUT_AI: "false",
       },
       runCheck,
@@ -40,7 +41,7 @@ describe("runAction", () => {
     expect(runCheck).toHaveBeenCalledWith(
       expect.objectContaining({
         cwd: dir,
-        base: "main",
+        base: "origin/main",
         format: "markdown",
         ai: false,
       }),
@@ -90,6 +91,12 @@ describe("runAction", () => {
 
     await expect(stat(summaryPath)).rejects.toMatchObject({ code: "ENOENT" });
     expect(exitCode).toBe(1);
+  });
+
+  it("defaults the GitHub Action base to origin/main for checkout-based CI", async () => {
+    const action = parse(await readFile("action.yml", "utf8"));
+
+    expect(action.inputs.base.default).toBe("origin/main");
   });
 });
 

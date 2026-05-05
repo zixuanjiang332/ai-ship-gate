@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -226,21 +226,61 @@ describe("collectGitContext", () => {
     "collects staged source diffs larger than the default exec buffer",
     async () => {
       const repo = await mkdtemp(join(tmpdir(), "shipgate-large-diff-"));
+      const gitConfigPath = join(repo, "gitconfig");
+      const hooksPath = join(repo, "hooks");
+      const templatePath = join(repo, "template");
+      const gitEnv = {
+        ...process.env,
+        GIT_CONFIG_GLOBAL: gitConfigPath,
+      };
 
       try {
-        await execFileAsync("git", ["init"], { cwd: repo });
+        await mkdir(hooksPath);
+        await writeFile(join(hooksPath, "pre-commit"), "#!/bin/sh\nexit 42\n");
+        await chmod(join(hooksPath, "pre-commit"), 0o755);
+        await mkdir(join(templatePath, "hooks"), { recursive: true });
+        await writeFile(join(templatePath, "hooks", "prepare-commit-msg"), "#!/bin/sh\nexit 43\n");
+        await chmod(join(templatePath, "hooks", "prepare-commit-msg"), 0o755);
+        await writeFile(
+          gitConfigPath,
+          [
+            "[commit]",
+            "\tgpgsign = true",
+            "[core]",
+            `\thooksPath = ${hooksPath.replace(/\\/g, "/")}`,
+            "[init]",
+            `\ttemplateDir = ${templatePath.replace(/\\/g, "/")}`,
+            "",
+          ].join("\n"),
+        );
+
+        await execFileAsync("git", ["-c", "init.templateDir=", "init"], { cwd: repo, env: gitEnv });
         await writeFile(join(repo, "README.md"), "# Fixture\n");
-        await execFileAsync("git", ["add", "README.md"], { cwd: repo });
+        await execFileAsync("git", ["add", "README.md"], { cwd: repo, env: gitEnv });
         await execFileAsync(
           "git",
-          ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "baseline"],
-          { cwd: repo },
+          [
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.com",
+            "-c",
+            "commit.gpgsign=false",
+            "-c",
+            "core.hooksPath=",
+            "commit",
+            "--no-gpg-sign",
+            "--no-verify",
+            "-m",
+            "baseline",
+          ],
+          { cwd: repo, env: gitEnv },
         );
 
         await mkdir(join(repo, "src"));
         const largeSource = `export const payload = ${JSON.stringify("x".repeat(1_600_000))};\n`;
         await writeFile(join(repo, "src", "big.ts"), largeSource);
-        await execFileAsync("git", ["add", "src/big.ts"], { cwd: repo });
+        await execFileAsync("git", ["add", "src/big.ts"], { cwd: repo, env: gitEnv });
 
         const context = await collectGitContext({ cwd: repo, base: "HEAD" });
 

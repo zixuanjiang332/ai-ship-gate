@@ -29,7 +29,7 @@ export async function collectGitContext(options: {
 export function parseChangedFiles(nameStatus: string, patch: string): ChangedFile[] {
   return parseNameStatus(nameStatus).map((file) => ({
     ...file,
-    patch: extractPatchForPath(patch, file.path),
+    patch: extractPatchForPath(patch, file.path, file.status),
   }));
 }
 
@@ -56,47 +56,44 @@ function statusFromCode(code: string): ChangedFile["status"] {
   return "unknown";
 }
 
-function extractPatchForPath(patch: string, path: string): string {
-  return splitPatchSections(patch).find((section) => section.path === path)?.patch ?? "";
+function extractPatchForPath(patch: string, path: string, status: ChangedFile["status"]): string {
+  return splitPatchSections(patch).find((section) => diffSectionMatchesPath(section, path, status))?.patch ?? "";
 }
 
-function splitPatchSections(patch: string): Array<{ path: string; patch: string }> {
+function splitPatchSections(patch: string): Array<{ header: string; patch: string }> {
   const headers = [...patch.matchAll(/^diff --git .*(?:\r?\n|$)/gm)];
 
-  return headers
-    .map((match, index) => {
-      const start = match.index ?? 0;
-      const next = headers[index + 1];
-      const section = patch.slice(start, next?.index);
-      const header = match[0].trimEnd();
-      const path = parseDiffHeaderTargetPath(header);
-      return path === undefined ? undefined : { path, patch: section };
-    })
-    .filter((section): section is { path: string; patch: string } => section !== undefined);
+  return headers.map((match, index) => {
+    const start = match.index ?? 0;
+    const next = headers[index + 1];
+    return {
+      header: match[0].trimEnd(),
+      patch: patch.slice(start, next?.index),
+    };
+  });
 }
 
-function parseDiffHeaderTargetPath(header: string): string | undefined {
-  const paths = header.slice("diff --git ".length);
-  const quoted = paths.match(/^"a\/((?:[^"\\]|\\.)*)"\s+"b\/((?:[^"\\]|\\.)*)"$/);
-  if (quoted) {
-    return unquoteGitPath(quoted[2]);
-  }
+function diffSectionMatchesPath(
+  section: { header: string; patch: string },
+  path: string,
+  status: ChangedFile["status"],
+): boolean {
+  if (diffHeaderMatchesSamePath(section.header, path)) return true;
+  if (status !== "renamed") return false;
 
-  if (!paths.startsWith("a/")) return undefined;
-
-  const targetMarker = " b/";
-  const targetIndex = paths.lastIndexOf(targetMarker);
-  if (targetIndex === -1) return undefined;
-
-  return paths.slice(targetIndex + targetMarker.length);
+  const quotedTargetPathSuffix = ` ${JSON.stringify(`b/${path}`)}`;
+  return (
+    section.header.endsWith(` b/${path}`) ||
+    section.header.endsWith(quotedTargetPathSuffix) ||
+    section.patch.split(/\r?\n/).includes(`rename to ${path}`)
+  );
 }
 
-function unquoteGitPath(path: string): string {
-  try {
-    return JSON.parse(`"${path}"`) as string;
-  } catch {
-    return path;
-  }
+function diffHeaderMatchesSamePath(header: string, path: string): boolean {
+  const samePathHeader = `diff --git a/${path} b/${path}`;
+  const quotedSamePathHeader = `diff --git ${JSON.stringify(`a/${path}`)} ${JSON.stringify(`b/${path}`)}`;
+
+  return header === samePathHeader || header === quotedSamePathHeader;
 }
 
 function detectMetadata(lsFilesOutput: string): ProjectMetadata {

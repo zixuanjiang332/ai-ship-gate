@@ -93,6 +93,29 @@ describe("parseChangedFiles", () => {
     );
   });
 
+  it("matches unquoted paths containing the b path marker text", () => {
+    const files = parseChangedFiles(
+      "M\tfoo b/bar.ts\n",
+      "diff --git a/foo b/bar.ts b/foo b/bar.ts\n+++ b/foo b/bar.ts\n+const ok = true;\n",
+    );
+
+    expect(files[0]?.patch).toBe(
+      "diff --git a/foo b/bar.ts b/foo b/bar.ts\n+++ b/foo b/bar.ts\n+const ok = true;\n",
+    );
+  });
+
+  it("does not match a suffix of a path containing the b path marker text", () => {
+    const files = parseChangedFiles(
+      "M\tbar.ts\nM\tfoo b/bar.ts\n",
+      "diff --git a/foo b/bar.ts b/foo b/bar.ts\n+++ b/foo b/bar.ts\n+const ok = true;\n",
+    );
+
+    expect(files[0]?.patch).toBe("");
+    expect(files[1]?.patch).toBe(
+      "diff --git a/foo b/bar.ts b/foo b/bar.ts\n+++ b/foo b/bar.ts\n+const ok = true;\n",
+    );
+  });
+
   it("matches renamed files by the new path", () => {
     const files = parseChangedFiles(
       "R100\told-name.ts\tnew-name.ts\n",

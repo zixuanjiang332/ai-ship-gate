@@ -18,6 +18,7 @@ const lockfiles = new Set([
   "go.sum",
   "Cargo.lock",
 ]);
+const lockfileNames = [...lockfiles];
 const envExamples = new Set([".env.example", ".env.sample", "env.example"]);
 const securityTerms = [
   "auth",
@@ -55,7 +56,8 @@ export function isDependencyManifest(path: string): boolean {
 }
 
 export function isLockfile(path: string): boolean {
-  return lockfiles.has(normalize(path));
+  const normalized = normalize(path);
+  return lockfiles.has(normalized) || lockfileNames.some((lockfile) => normalized.endsWith(`/${lockfile}`));
 }
 
 export function isEnvExamplePath(path: string): boolean {

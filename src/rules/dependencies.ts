@@ -23,7 +23,7 @@ export const dependencyRiskRule: Rule = {
 
     for (const file of manifests) {
       const added = file.patch.split(/\r?\n/).filter((line) => line.startsWith("+") && !line.startsWith("+++"));
-      if (added.some((line) => /"postinstall"\s*:|curl\s+https?:\/\/|wget\s+https?:\/\//.test(line))) {
+      if (added.some((line) => /"postinstall"\s*:|\b(?:curl|wget)(?:\s+-{1,2}[A-Za-z0-9][A-Za-z0-9-]*)*\s+https?:\/\//.test(line))) {
         findings.push({
           id: "dependencies.risky-install-script",
           severity: "fail",

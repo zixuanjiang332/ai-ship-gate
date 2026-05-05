@@ -43,6 +43,9 @@ describe("path classifiers", () => {
       "uv.lock",
       "go.sum",
       "Cargo.lock",
+      "packages/api/package-lock.json",
+      "services/web/pnpm-lock.yaml",
+      "backend/poetry.lock",
     ]) {
       expect(isLockfile(path)).toBe(true);
     }

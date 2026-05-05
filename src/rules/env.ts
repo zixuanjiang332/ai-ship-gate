@@ -8,7 +8,7 @@ export const envRiskRule: Rule = {
   run(context) {
     const findings: Finding[] = [];
     const envUsageFiles = context.changedFiles.filter((file) => patchAddsEnvUsage(file.patch));
-    const envExampleChanged = context.changedFiles.some((file) => isEnvExamplePath(file.path) || /README|docs\//i.test(file.path));
+    const envExampleChanged = context.changedFiles.some((file) => isEnvExamplePath(file.path) || isEnvDocumentationPath(file.path));
 
     if (envUsageFiles.length > 0 && !envExampleChanged && !context.metadata.hasEnvExample) {
       findings.push({
@@ -21,7 +21,7 @@ export const envRiskRule: Rule = {
       });
     }
 
-    const secretFiles = context.changedFiles.filter((file) => /^\.env($|\.)/.test(file.path) && !isEnvExamplePath(file.path));
+    const secretFiles = context.changedFiles.filter((file) => isRealEnvFilePath(file.path));
     if (secretFiles.length > 0) {
       findings.push({
         id: "env.secret-file-committed",
@@ -48,3 +48,17 @@ export const envRiskRule: Rule = {
     return findings;
   },
 };
+
+function isRealEnvFilePath(path: string): boolean {
+  if (isEnvExamplePath(path)) {
+    return false;
+  }
+
+  const filename = path.replaceAll("\\", "/").split("/").pop() ?? "";
+  return filename === ".env" || filename.startsWith(".env.");
+}
+
+function isEnvDocumentationPath(path: string): boolean {
+  const normalized = path.replaceAll("\\", "/");
+  return /README/i.test(normalized) || /(^|\/)docs\//i.test(normalized);
+}

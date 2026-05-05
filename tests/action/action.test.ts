@@ -1,4 +1,4 @@
-import { cp, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -120,18 +120,43 @@ describe("release action runtime", () => {
     const releaseDir = await mkdtemp(join(tmpdir(), "shipgate-release-"));
     const workspaceDir = await mkdtemp(join(tmpdir(), "shipgate-workspace-"));
     const releaseSummaryPath = join(releaseDir, "summary.md");
+    const gitConfigPath = join(releaseDir, "gitconfig");
+    const hooksPath = join(releaseDir, "hooks");
+    const gitHooksPath = hooksPath.replace(/\\/g, "/");
+    const gitEnv = {
+      ...process.env,
+      GIT_CONFIG_GLOBAL: gitConfigPath,
+    };
 
     try {
       await cp("dist", join(releaseDir, "dist"), { recursive: true });
       await writeFile(join(releaseDir, "package.json"), JSON.stringify({ type: "module" }));
+      await mkdir(hooksPath);
+      await writeFile(join(hooksPath, "pre-commit"), "#!/bin/sh\nexit 42\n");
+      await chmod(join(hooksPath, "pre-commit"), 0o755);
+      await writeFile(gitConfigPath, `[commit]\n\tgpgsign = true\n[core]\n\thooksPath = ${gitHooksPath}\n`);
 
-      await execFileAsync("git", ["init"], { cwd: workspaceDir });
+      await execFileAsync("git", ["init"], { cwd: workspaceDir, env: gitEnv });
       await writeFile(join(workspaceDir, "README.md"), "# Fixture\n");
-      await execFileAsync("git", ["add", "README.md"], { cwd: workspaceDir });
+      await execFileAsync("git", ["add", "README.md"], { cwd: workspaceDir, env: gitEnv });
       await execFileAsync(
         "git",
-        ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "fixture"],
-        { cwd: workspaceDir },
+        [
+          "-c",
+          "user.name=Test",
+          "-c",
+          "user.email=test@example.com",
+          "-c",
+          "commit.gpgsign=false",
+          "-c",
+          "core.hooksPath=",
+          "commit",
+          "--no-gpg-sign",
+          "--no-verify",
+          "-m",
+          "fixture",
+        ],
+        { cwd: workspaceDir, env: gitEnv },
       );
 
       const result = await execFileAsync("node", [join(releaseDir, "dist", "action.js")], {

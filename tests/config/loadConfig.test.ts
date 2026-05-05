@@ -42,4 +42,48 @@ describe("loadConfig", () => {
     await writeFile(join(dir, "shipgate.config.yaml"), "failOn: sometimes\n");
     await expect(loadConfig(dir)).rejects.toThrow("Invalid failOn");
   });
+
+  it("rejects invalid ai values", async () => {
+    await writeFile(join(dir, "shipgate.config.yaml"), "ai: true\n");
+    await expect(loadConfig(dir)).rejects.toThrow("Invalid ai value");
+  });
+
+  it("rejects invalid checks values", async () => {
+    await writeFile(join(dir, "shipgate.config.yaml"), "checks: []\n");
+    await expect(loadConfig(dir)).rejects.toThrow("Invalid checks value");
+  });
+
+  it("rejects quoted check booleans", async () => {
+    await writeFile(join(dir, "shipgate.config.yaml"), 'checks:\n  docker: "false"\n');
+    await expect(loadConfig(dir)).rejects.toThrow("Invalid checks.docker value");
+  });
+
+  it("returns deeply cloned default config", async () => {
+    const first = await loadConfig(dir);
+    first.ai.enabled = true;
+    first.checks.docker = false;
+
+    const second = await loadConfig(dir);
+
+    expect(second).toEqual(defaultConfig);
+    expect(defaultConfig.ai.enabled).toBe(false);
+    expect(defaultConfig.checks.docker).toBe(true);
+  });
+
+  it("preserves explicit false values for multiple checks", async () => {
+    await writeFile(
+      join(dir, "shipgate.config.yaml"),
+      "checks:\n  tests: false\n  docker: false\n  security: false\n",
+    );
+
+    await expect(loadConfig(dir)).resolves.toEqual({
+      ...defaultConfig,
+      checks: {
+        ...defaultConfig.checks,
+        tests: false,
+        docker: false,
+        security: false,
+      },
+    });
+  });
 });

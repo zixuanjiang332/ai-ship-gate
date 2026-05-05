@@ -135,6 +135,23 @@ describe("parseChangedFiles", () => {
       },
     ]);
   });
+
+  it("matches renamed files by rename target instead of suffix-like headers", () => {
+    const files = parseChangedFiles(
+      "R100\told.ts\tbar.ts\n",
+      [
+        "diff --git a/foo b/bar.ts b/foo b/bar.ts",
+        "+++ b/foo b/bar.ts",
+        "+const unrelated = true;",
+        "diff --git a/old.ts b/bar.ts",
+        "rename from old.ts",
+        "rename to bar.ts",
+        "",
+      ].join("\n"),
+    );
+
+    expect(files[0]?.patch).toBe("diff --git a/old.ts b/bar.ts\nrename from old.ts\nrename to bar.ts\n");
+  });
 });
 
 describe("collectGitContext", () => {

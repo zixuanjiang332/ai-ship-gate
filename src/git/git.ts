@@ -81,12 +81,7 @@ function diffSectionMatchesPath(
   if (diffHeaderMatchesSamePath(section.header, path)) return true;
   if (status !== "renamed") return false;
 
-  const quotedTargetPathSuffix = ` ${JSON.stringify(`b/${path}`)}`;
-  return (
-    section.header.endsWith(` b/${path}`) ||
-    section.header.endsWith(quotedTargetPathSuffix) ||
-    section.patch.split(/\r?\n/).includes(`rename to ${path}`)
-  );
+  return section.patch.split(/\r?\n/).includes(`rename to ${path}`);
 }
 
 function diffHeaderMatchesSamePath(header: string, path: string): boolean {

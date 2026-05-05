@@ -57,11 +57,46 @@ function statusFromCode(code: string): ChangedFile["status"] {
 }
 
 function extractPatchForPath(patch: string, path: string): string {
-  const sections = patch
-    .split(/^diff --git /m)
-    .filter(Boolean)
-    .map((section) => `diff --git ${section}`);
-  return sections.find((section) => section.includes(` b/${path}`) || section.includes(`"${path}"`)) ?? "";
+  return splitPatchSections(patch).find((section) => section.path === path)?.patch ?? "";
+}
+
+function splitPatchSections(patch: string): Array<{ path: string; patch: string }> {
+  const headers = [...patch.matchAll(/^diff --git .*(?:\r?\n|$)/gm)];
+
+  return headers
+    .map((match, index) => {
+      const start = match.index ?? 0;
+      const next = headers[index + 1];
+      const section = patch.slice(start, next?.index);
+      const header = match[0].trimEnd();
+      const path = parseDiffHeaderTargetPath(header);
+      return path === undefined ? undefined : { path, patch: section };
+    })
+    .filter((section): section is { path: string; patch: string } => section !== undefined);
+}
+
+function parseDiffHeaderTargetPath(header: string): string | undefined {
+  const paths = header.slice("diff --git ".length);
+  const quoted = paths.match(/^"a\/((?:[^"\\]|\\.)*)"\s+"b\/((?:[^"\\]|\\.)*)"$/);
+  if (quoted) {
+    return unquoteGitPath(quoted[2]);
+  }
+
+  if (!paths.startsWith("a/")) return undefined;
+
+  const targetMarker = " b/";
+  const targetIndex = paths.lastIndexOf(targetMarker);
+  if (targetIndex === -1) return undefined;
+
+  return paths.slice(targetIndex + targetMarker.length);
+}
+
+function unquoteGitPath(path: string): string {
+  try {
+    return JSON.parse(`"${path}"`) as string;
+  } catch {
+    return path;
+  }
 }
 
 function detectMetadata(lsFilesOutput: string): ProjectMetadata {
@@ -87,15 +122,15 @@ function detectMetadata(lsFilesOutput: string): ProjectMetadata {
 }
 
 async function resolveDefaultBase(exec: Exec, cwd: string): Promise<string> {
-  try {
-    return (await exec(["merge-base", "HEAD", "main"], cwd)).trim();
-  } catch {
+  for (const candidate of ["main", "master", "origin/main", "origin/master"]) {
     try {
-      return (await exec(["merge-base", "HEAD", "master"], cwd)).trim();
+      return (await exec(["merge-base", "HEAD", candidate], cwd)).trim();
     } catch {
-      return "HEAD";
+      continue;
     }
   }
+
+  throw new Error("Unable to resolve a base ref. Pass --base <ref>.");
 }
 
 async function git(args: string[], cwd: string): Promise<string> {

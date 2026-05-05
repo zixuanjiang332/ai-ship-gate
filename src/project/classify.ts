@@ -94,7 +94,9 @@ export function patchAddsEnvUsage(patch: string): boolean {
 
 export function patchContainsSecret(patch: string): boolean {
   return addedLines(patch).some((line) =>
-    /(api[_-]?key|secret|token|password)\s*[:=]\s*['"]?[A-Za-z0-9_\-]{20,}|sk-[A-Za-z0-9]{20,}/i.test(line),
+    /\b[A-Z0-9_-]*(?:api[_-]?key|secret|token|password|access[_-]?key)[A-Z0-9_-]*\s*[:=]\s*['"]?[A-Za-z0-9_./+=-]{16,}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9_]{30,}|AKIA[0-9A-Z]{16}/i.test(
+      line,
+    ),
   );
 }
 

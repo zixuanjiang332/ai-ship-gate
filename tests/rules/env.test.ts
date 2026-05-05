@@ -70,14 +70,14 @@ describe("envRiskRule", () => {
     expect(findings.some((finding) => finding.id === "env.example-not-updated")).toBe(false);
   });
 
-  it("does not warn when repo metadata reports an env example exists", () => {
+  it("warns when repo metadata reports an env example exists but no env docs changed", () => {
     const findings = envRiskRule.run(
-      context([{ path: "src/config.ts", status: "modified", patch: "+const key = process.env.OPENAI_API_KEY;" }], {
+      context([{ path: "src/config.ts", status: "modified", patch: "+const key = process.env.NEW_REQUIRED_VAR;" }], {
         hasEnvExample: true,
       }),
     );
 
-    expect(findings.some((finding) => finding.id === "env.example-not-updated")).toBe(false);
+    expect(findings).toContainEqual(expect.objectContaining({ id: "env.example-not-updated", severity: "warn" }));
   });
 
   it("fails nested real env files but not nested env examples", () => {

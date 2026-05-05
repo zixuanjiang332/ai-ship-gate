@@ -96,7 +96,12 @@ describe("patch classifiers", () => {
 
   it("detects likely secrets", () => {
     expect(patchContainsSecret("+OPENAI_API_KEY=sk-1234567890abcdef1234567890abcdef")).toBe(true);
+    expect(patchContainsSecret("+AWS_SECRET_ACCESS_KEY=abcdefghijklmnopqrstuvwxyz1234567890")).toBe(true);
+    expect(patchContainsSecret("+AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE")).toBe(true);
+    expect(patchContainsSecret("+GITHUB_TOKEN=ghp_1234567890abcdef1234567890abcdef1234")).toBe(true);
     expect(patchContainsSecret("+const label = 'safe';")).toBe(false);
+    expect(patchContainsSecret("-AWS_SECRET_ACCESS_KEY=abcdefghijklmnopqrstuvwxyz1234567890")).toBe(false);
+    expect(patchContainsSecret("+++ b/config.ts\n+const label = 'safe';")).toBe(false);
     expect(patchContainsSecret("-OPENAI_API_KEY=sk-1234567890abcdef1234567890abcdef")).toBe(false);
     expect(patchContainsSecret("+++ b/.env")).toBe(false);
   });

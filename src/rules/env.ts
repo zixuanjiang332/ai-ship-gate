@@ -10,7 +10,7 @@ export const envRiskRule: Rule = {
     const envUsageFiles = context.changedFiles.filter((file) => patchAddsEnvUsage(file.patch));
     const envExampleChanged = context.changedFiles.some((file) => isEnvExamplePath(file.path) || isEnvDocumentationPath(file.path));
 
-    if (envUsageFiles.length > 0 && !envExampleChanged && !context.metadata.hasEnvExample) {
+    if (envUsageFiles.length > 0 && !envExampleChanged) {
       findings.push({
         id: "env.example-not-updated",
         severity: "warn",

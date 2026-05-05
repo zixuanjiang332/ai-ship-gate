@@ -1,5 +1,5 @@
 import type { Finding } from "../domain/types.js";
-import { isDependencyManifest, isLockfile } from "../project/classify.js";
+import { isDependencyManifest } from "../project/classify.js";
 import type { Rule } from "./engine.js";
 
 export const dependencyRiskRule: Rule = {
@@ -8,15 +8,16 @@ export const dependencyRiskRule: Rule = {
   run(context) {
     const findings: Finding[] = [];
     const manifests = context.changedFiles.filter((file) => isDependencyManifest(file.path));
-    const lockfiles = context.changedFiles.filter((file) => isLockfile(file.path));
+    const changedPaths = new Set(context.changedFiles.map((file) => normalizePath(file.path)));
+    const manifestsWithoutLockfiles = manifests.filter((file) => !hasMatchingLockfile(file.path, changedPaths));
 
-    if (manifests.length > 0 && lockfiles.length === 0) {
+    if (manifestsWithoutLockfiles.length > 0) {
       findings.push({
         id: "dependencies.lockfile-not-updated",
         severity: "warn",
         title: "Dependency manifest changed without lockfile",
         message: "A dependency manifest changed, but no recognized lockfile changed in the same diff.",
-        files: manifests.map((file) => file.path),
+        files: manifestsWithoutLockfiles.map((file) => file.path),
         suggestion: "Update and commit the matching lockfile so CI and installs stay reproducible.",
       });
     }
@@ -38,3 +39,30 @@ export const dependencyRiskRule: Rule = {
     return findings;
   },
 };
+
+function hasMatchingLockfile(manifestPath: string, changedPaths: Set<string>): boolean {
+  const normalized = normalizePath(manifestPath);
+  const directory = normalized.includes("/") ? normalized.slice(0, normalized.lastIndexOf("/") + 1) : "";
+  const filename = normalized.slice(directory.length);
+
+  return matchingLockfileNames(filename).some((lockfile) => changedPaths.has(`${directory}${lockfile}`));
+}
+
+function matchingLockfileNames(manifestName: string): string[] {
+  switch (manifestName) {
+    case "package.json":
+      return ["package-lock.json", "pnpm-lock.yaml", "yarn.lock"];
+    case "pyproject.toml":
+      return ["poetry.lock", "uv.lock"];
+    case "go.mod":
+      return ["go.sum"];
+    case "Cargo.toml":
+      return ["Cargo.lock"];
+    default:
+      return [];
+  }
+}
+
+function normalizePath(path: string): string {
+  return path.replaceAll("\\", "/");
+}

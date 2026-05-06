@@ -9,6 +9,15 @@ inputs:
     description: Enable optional AI explanation.
     required: false
     default: "false"
+outputs:
+  verdict:
+    description: Final ReleaseGuard verdict, one of pass, warn, or fail.
+  findings-count:
+    description: Total number of findings in the checked diff.
+  fail-count:
+    description: Number of fail-severity findings in the checked diff.
+  warn-count:
+    description: Number of warn-severity findings in the checked diff.
 runs:
   using: node20
   main: dist/action.js

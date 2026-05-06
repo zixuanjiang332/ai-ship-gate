@@ -10,11 +10,13 @@ import { isDirectRun, runAction } from "../../src/action.js";
 
 let dir: string;
 let summaryPath: string;
+let outputPath: string;
 const execFileAsync = promisify(execFile);
 
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), "releaseguard-action-"));
   summaryPath = join(dir, "summary.md");
+  outputPath = join(dir, "outputs.txt");
 });
 
 afterEach(async () => {
@@ -22,9 +24,21 @@ afterEach(async () => {
 });
 
 describe("runAction", () => {
-  it("writes the rendered report to the GitHub step summary", async () => {
+  it("writes the action summary to the GitHub step summary", async () => {
     const runCheck = vi.fn().mockResolvedValue({
-      report: { verdict: "warn", findings: [] },
+      report: {
+        verdict: "warn",
+        findings: [
+          {
+            id: "tests.missing-related-tests",
+            severity: "warn",
+            title: "Source changed without tests",
+            message: "Source changed but tests did not.",
+            files: ["src/app.ts"],
+            suggestion: "Add tests.",
+          },
+        ],
+      },
       rendered: "# ReleaseGuard AI: WARN\n",
       exitCode: 0,
     });
@@ -40,6 +54,8 @@ describe("runAction", () => {
     });
 
     await expect(readFile(summaryPath, "utf8")).resolves.toContain("# ReleaseGuard AI: WARN");
+    await expect(readFile(summaryPath, "utf8")).resolves.toContain("| WARN | 1 | 0 | 1 | 0 |");
+    await expect(readFile(summaryPath, "utf8")).resolves.toContain("## Top Findings");
     expect(exitCode).toBe(0);
     expect(runCheck).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -48,6 +64,46 @@ describe("runAction", () => {
         format: "markdown",
         ai: false,
       }),
+    );
+  });
+
+  it("writes verdict and finding counts to GitHub Action outputs", async () => {
+    const runCheck = vi.fn().mockResolvedValue({
+      report: {
+        verdict: "fail",
+        findings: [
+          {
+            id: "security.secret-in-diff",
+            severity: "fail",
+            title: "Secret-like value in diff",
+            message: "The diff contains a token-like value.",
+            files: ["src/config.ts"],
+            suggestion: "Remove it.",
+          },
+          {
+            id: "tests.missing-related-tests",
+            severity: "warn",
+            title: "Source changed without tests",
+            message: "Source changed but tests did not.",
+            files: ["src/app.ts"],
+            suggestion: "Add tests.",
+          },
+        ],
+      },
+      rendered: "# ReleaseGuard AI: FAIL\n",
+      exitCode: 1,
+    });
+
+    await runAction({
+      env: {
+        GITHUB_WORKSPACE: dir,
+        GITHUB_OUTPUT: outputPath,
+      },
+      runCheck,
+    });
+
+    await expect(readFile(outputPath, "utf8")).resolves.toBe(
+      ["verdict=fail", "findings-count=2", "fail-count=1", "warn-count=1", ""].join("\n"),
     );
   });
 
@@ -100,6 +156,13 @@ describe("runAction", () => {
     const action = parse(await readFile("action.yml", "utf8"));
 
     expect(action.inputs.base.default).toBe("origin/main");
+  });
+
+  it("declares stable outputs for workflow consumers", async () => {
+    const action = parse(await readFile("action.yml", "utf8"));
+
+    expect(Object.keys(action.outputs)).toEqual(["verdict", "findings-count", "fail-count", "warn-count"]);
+    expect(action.outputs.verdict.description).toContain("Final ReleaseGuard verdict");
   });
 });
 

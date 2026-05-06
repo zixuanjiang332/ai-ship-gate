@@ -13,7 +13,7 @@ const outputFormats = ["terminal", "json", "markdown"] as const;
 program
   .name("releaseguard")
   .description("A deterministic PR diff release gate for AI-generated code.")
-  .version("0.1.1");
+  .version("0.2.0");
 
 program
   .command("check")

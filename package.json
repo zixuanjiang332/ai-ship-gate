@@ -5,8 +5,8 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "releaseguard": "./dist/cli.js",
-    "releaseguard-ai": "./dist/cli.js"
+    "releaseguard": "dist/cli.js",
+    "releaseguard-ai": "dist/cli.js"
   },
   "files": [
     "dist",

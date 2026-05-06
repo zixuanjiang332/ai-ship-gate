@@ -8,7 +8,7 @@ import { loadConfig } from "../../src/config/loadConfig.js";
 let dir: string;
 
 beforeEach(async () => {
-  dir = join(tmpdir(), `shipgate-config-${Date.now()}-${Math.random()}`);
+  dir = join(tmpdir(), `releaseguard-config-${Date.now()}-${Math.random()}`);
   await mkdir(dir, { recursive: true });
 });
 
@@ -23,7 +23,7 @@ describe("loadConfig", () => {
 
   it("merges user config over defaults", async () => {
     await writeFile(
-      join(dir, "shipgate.config.yaml"),
+      join(dir, "releaseguard.config.yaml"),
       "failOn: warn\nai:\n  enabled: true\nchecks:\n  docker: false\n",
     );
 
@@ -39,22 +39,22 @@ describe("loadConfig", () => {
   });
 
   it("rejects invalid failOn values", async () => {
-    await writeFile(join(dir, "shipgate.config.yaml"), "failOn: sometimes\n");
+    await writeFile(join(dir, "releaseguard.config.yaml"), "failOn: sometimes\n");
     await expect(loadConfig(dir)).rejects.toThrow("Invalid failOn");
   });
 
   it("rejects invalid ai values", async () => {
-    await writeFile(join(dir, "shipgate.config.yaml"), "ai: true\n");
+    await writeFile(join(dir, "releaseguard.config.yaml"), "ai: true\n");
     await expect(loadConfig(dir)).rejects.toThrow("Invalid ai value");
   });
 
   it("rejects invalid checks values", async () => {
-    await writeFile(join(dir, "shipgate.config.yaml"), "checks: []\n");
+    await writeFile(join(dir, "releaseguard.config.yaml"), "checks: []\n");
     await expect(loadConfig(dir)).rejects.toThrow("Invalid checks value");
   });
 
   it("rejects quoted check booleans", async () => {
-    await writeFile(join(dir, "shipgate.config.yaml"), 'checks:\n  docker: "false"\n');
+    await writeFile(join(dir, "releaseguard.config.yaml"), 'checks:\n  docker: "false"\n');
     await expect(loadConfig(dir)).rejects.toThrow("Invalid checks.docker value");
   });
 
@@ -72,7 +72,7 @@ describe("loadConfig", () => {
 
   it("preserves explicit false values for multiple checks", async () => {
     await writeFile(
-      join(dir, "shipgate.config.yaml"),
+      join(dir, "releaseguard.config.yaml"),
       "checks:\n  tests: false\n  docker: false\n  security: false\n",
     );
 

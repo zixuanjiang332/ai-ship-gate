@@ -13,7 +13,7 @@ let summaryPath: string;
 const execFileAsync = promisify(execFile);
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "shipgate-action-"));
+  dir = await mkdtemp(join(tmpdir(), "releaseguard-action-"));
   summaryPath = join(dir, "summary.md");
 });
 
@@ -25,7 +25,7 @@ describe("runAction", () => {
   it("writes the rendered report to the GitHub step summary", async () => {
     const runCheck = vi.fn().mockResolvedValue({
       report: { verdict: "warn", findings: [] },
-      rendered: "# AI Ship Gate: WARN\n",
+      rendered: "# ReleaseGuard AI: WARN\n",
       exitCode: 0,
     });
 
@@ -39,7 +39,7 @@ describe("runAction", () => {
       runCheck,
     });
 
-    await expect(readFile(summaryPath, "utf8")).resolves.toContain("# AI Ship Gate: WARN");
+    await expect(readFile(summaryPath, "utf8")).resolves.toContain("# ReleaseGuard AI: WARN");
     expect(exitCode).toBe(0);
     expect(runCheck).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -59,7 +59,7 @@ describe("runAction", () => {
   ])("parses INPUT_AI=%s as %s", async (inputAi, expected) => {
     const runCheck = vi.fn().mockResolvedValue({
       report: { verdict: "pass", findings: [] },
-      rendered: "# AI Ship Gate: PASS\n",
+      rendered: "# ReleaseGuard AI: PASS\n",
       exitCode: 0,
     });
 
@@ -81,7 +81,7 @@ describe("runAction", () => {
   it("returns the exit code without writing when no GitHub step summary is configured", async () => {
     const runCheck = vi.fn().mockResolvedValue({
       report: { verdict: "fail", findings: [] },
-      rendered: "# AI Ship Gate: FAIL\n",
+      rendered: "# ReleaseGuard AI: FAIL\n",
       exitCode: 1,
     });
 
@@ -117,8 +117,8 @@ describe("isDirectRun", () => {
 
 describe("release action runtime", () => {
   it("runs from a release directory without node_modules", async () => {
-    const releaseDir = await mkdtemp(join(tmpdir(), "shipgate-release-"));
-    const workspaceDir = await mkdtemp(join(tmpdir(), "shipgate-workspace-"));
+    const releaseDir = await mkdtemp(join(tmpdir(), "releaseguard-release-"));
+    const workspaceDir = await mkdtemp(join(tmpdir(), "releaseguard-workspace-"));
     const releaseSummaryPath = join(releaseDir, "summary.md");
     const gitConfigPath = join(releaseDir, "gitconfig");
     const hooksPath = join(releaseDir, "hooks");
@@ -171,7 +171,7 @@ describe("release action runtime", () => {
       });
 
       expect(result.stderr).not.toContain("ERR_MODULE_NOT_FOUND");
-      await expect(readFile(releaseSummaryPath, "utf8")).resolves.toContain("# AI Ship Gate: PASS");
+      await expect(readFile(releaseSummaryPath, "utf8")).resolves.toContain("# ReleaseGuard AI: PASS");
     } finally {
       await rm(releaseDir, { recursive: true, force: true });
       await rm(workspaceDir, { recursive: true, force: true });

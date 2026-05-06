@@ -111,6 +111,36 @@ describe("maybeExplainWithAi", () => {
         report,
         env: {
           OPENAI_API_KEY: "test-key",
+          RELEASEGUARD_AI_TIMEOUT_MS: "5",
+        },
+        fetch,
+      });
+
+      await vi.advanceTimersByTimeAsync(5);
+
+      await expect(summary).resolves.toBeUndefined();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("uses the deprecated SHIPGATE timeout env var as a fallback", async () => {
+    vi.useFakeTimers();
+    const fetch = vi.fn((_url: string | URL | Request, init?: RequestInit) => {
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("The operation was aborted.", "AbortError"));
+        });
+      });
+    });
+
+    try {
+      const summary = maybeExplainWithAi({
+        enabled: true,
+        report,
+        env: {
+          OPENAI_API_KEY: "test-key",
           SHIPGATE_AI_TIMEOUT_MS: "5",
         },
         fetch,

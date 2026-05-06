@@ -5,7 +5,7 @@
 [![CI](https://github.com/zixuanjiang332/releaseguard-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/zixuanjiang332/releaseguard-ai/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/releaseguard-ai.svg)](https://www.npmjs.com/package/releaseguard-ai)
 [![Release](https://img.shields.io/github/v/release/zixuanjiang332/releaseguard-ai?include_prereleases&label=release)](https://github.com/zixuanjiang332/releaseguard-ai/releases)
-[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-v0.3.0-38bdf8)](action.yml)
+[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-v0.4.0-38bdf8)](action.yml)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-4ade80.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-pre--v1-f59e0b)](docs/release.md)
@@ -21,7 +21,7 @@ ReleaseGuard AI checks a PR-sized git diff for practical release risks before me
 - Catches release risks that AI-assisted edits often miss: tests, lockfiles, env examples, CI, Docker, and secrets.
 - Stays deterministic first: rule output decides the verdict, while optional AI mode only explains the findings.
 - Runs as both a zero-install CLI and a GitHub Action, so teams can try it on a real PR in minutes.
-- Produces terminal, JSON, Markdown, and SARIF output for local checks, CI logs, and code scanning workflows.
+- Produces terminal, JSON, Markdown, and SARIF output plus optional PR comments for local checks, CI logs, and code scanning workflows.
 
 ## Quickstart
 
@@ -123,22 +123,28 @@ on:
 jobs:
   releaseguard:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: releaseguard
-        uses: zixuanjiang332/releaseguard-ai@v0.3.0
+        uses: zixuanjiang332/releaseguard-ai@v0.4.0
         with:
           base: origin/main
           ai: false
+          pr-comment: on-failure
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Print verdict
         if: always()
         run: echo "ReleaseGuard verdict: ${{ steps.releaseguard.outputs.verdict }}"
 ```
 
-Use `@v0.3.0` for reproducible pre-v1 runs. Use `@main` only when intentionally testing the latest repository state. Switch to `@v1` after the first stable release tag exists. See [docs/release.md](docs/release.md).
+Use `@v0.4.0` for reproducible pre-v1 runs. Use `@main` only when intentionally testing the latest repository state. Switch to `@v1` after the first stable release tag exists. See [docs/release.md](docs/release.md).
 
 The Action writes a GitHub job summary with the final verdict, finding counts, and top findings table. It also exposes outputs for later workflow steps:
 
@@ -148,6 +154,14 @@ The Action writes a GitHub job summary with the final verdict, finding counts, a
 | `findings-count` | Total findings in the checked diff. |
 | `fail-count` | Number of fail-severity findings. |
 | `warn-count` | Number of warn-severity findings. |
+
+The `pr-comment` input defaults to `off`. Supported modes:
+
+- `off`: never create a PR comment
+- `on-failure`: create or update a PR comment only for `FAIL`
+- `always`: create or update a PR comment for every PR run
+
+When comment mode is enabled, ReleaseGuard AI updates one stable PR comment instead of posting duplicates on reruns.
 
 ## SARIF Output
 
@@ -234,12 +248,12 @@ ReleaseGuard AI compares git refs. Full history makes base refs such as `origin/
 - [x] Create the first pre-v1 GitHub Release.
 - [x] Add a GitHub Action job summary report.
 - [x] Add SARIF output for GitHub code scanning.
-- [ ] Add optional PR annotations.
+- [x] Add optional PR comment mode.
 - [ ] Add more language-aware risk heuristics.
 - [ ] Prepare a stable `v1` Action tag and GitHub Marketplace draft.
 
 ## Release Status
 
-ReleaseGuard AI is currently pre-v1. The CLI is published on npm as `releaseguard-ai`, and this release line targets `v0.3.0`; stable `v1` tag creation and Marketplace publishing are separate release steps.
+ReleaseGuard AI is currently pre-v1. The CLI is published on npm as `releaseguard-ai`, and this release line targets `v0.4.0`; stable `v1` tag creation and Marketplace publishing are separate release steps.
 
 See [docs/release.md](docs/release.md) for the release checklist.

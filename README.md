@@ -35,7 +35,7 @@ node dist/cli.js check --ai
 node dist/cli.js init
 ```
 
-`shipgate init` writes `shipgate.config.yaml`. It fails if that file already exists, so existing configuration is not overwritten.
+`node dist/cli.js init` writes `shipgate.config.yaml`. It fails if that file already exists, so existing configuration is not overwritten.
 
 The npm package is not published yet. After npm publish, the planned zero-install path is `npx ai-ship-gate check`.
 

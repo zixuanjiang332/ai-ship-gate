@@ -1,21 +1,22 @@
 {
-  "name": "ai-ship-gate",
+  "name": "releaseguard-ai",
   "version": "0.1.0",
-  "description": "A deterministic release gate for AI-generated code.",
+  "description": "A deterministic PR diff release gate for AI-generated code.",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "shipgate": "./dist/cli.js"
+    "releaseguard": "./dist/cli.js",
+    "releaseguard-ai": "./dist/cli.js"
   },
   "files": [
     "dist",
     "action.yml",
     "README.md",
-    "docs/assets/ship-gate-hero.svg",
+    "docs/assets/releaseguard-ai-hero.svg",
     "docs/release.md",
     "docs/marketplace.md",
     "examples/risky-diff.md",
-    "shipgate.config.example.yaml"
+    "releaseguard.config.example.yaml"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && esbuild src/action.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/action.js --sourcemap --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",

@@ -1,5 +1,5 @@
-name: AI Ship Gate
-description: Deterministic release gate for AI-generated code.
+name: ReleaseGuard AI
+description: Deterministic PR diff release gate for AI-generated code.
 inputs:
   base:
     description: Base ref to compare against.

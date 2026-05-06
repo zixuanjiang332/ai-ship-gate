@@ -14,6 +14,10 @@
       <stop stop-color="#4ade80" stop-opacity="0.22"/>
       <stop offset="1" stop-color="#4ade80" stop-opacity="0"/>
     </radialGradient>
+    <radialGradient id="purpleBlueEdgeGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1160 470) rotate(160) scale(300 420)">
+      <stop stop-color="#818cf8" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
     <linearGradient id="panel" x1="160" y1="72" x2="1120" y2="568" gradientUnits="userSpaceOnUse">
       <stop stop-color="#0f172a" stop-opacity="0.88"/>
       <stop offset="1" stop-color="#020617" stop-opacity="0.94"/>
@@ -26,6 +30,7 @@
   <rect width="1280" height="640" fill="url(#cyanGlow)"/>
   <rect width="1280" height="640" fill="url(#roseGlow)"/>
   <rect width="1280" height="640" fill="url(#greenGlow)"/>
+  <rect width="1280" height="640" fill="url(#purpleBlueEdgeGlow)"/>
   <rect width="1280" height="640" fill="url(#grid)"/>
 
   <g opacity="0.24" font-family="Consolas, 'SFMono-Regular', monospace" font-size="20" fill="#94a3b8">

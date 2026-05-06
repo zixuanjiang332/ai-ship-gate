@@ -37,4 +37,47 @@ describe("securityRiskRule", () => {
     );
     expect(findings).toContainEqual(expect.objectContaining({ id: "security.secret-in-diff", severity: "fail" }));
   });
+
+  it("does not add a separate security warning for ordinary workflow file changes", () => {
+    const findings = securityRiskRule.run(
+      context([
+        {
+          path: ".github/workflows/releaseguard.yml",
+          status: "modified",
+          patch: "+jobs:\n+  verify:\n+    runs-on: ubuntu-latest\n+    steps:\n+      - run: echo ok",
+        },
+      ]),
+    );
+
+    expect(findings.some((finding) => finding.id === "security.sensitive-area-changed")).toBe(false);
+  });
+
+  it("does not warn for a standard PR comment workflow that uses github.token", () => {
+    const findings = securityRiskRule.run(
+      context([
+        {
+          path: ".github/workflows/releaseguard.yml",
+          status: "modified",
+          patch:
+            "+on:\n+  pull_request:\n+jobs:\n+  smoke:\n+    permissions:\n+      contents: read\n+      pull-requests: write\n+    steps:\n+      - env:\n+          GITHUB_TOKEN: ${{ github.token }}",
+        },
+      ]),
+    );
+
+    expect(findings.some((finding) => finding.id === "security.sensitive-area-changed")).toBe(false);
+  });
+
+  it("warns when a workflow introduces elevated security-sensitive capabilities", () => {
+    const findings = securityRiskRule.run(
+      context([
+        {
+          path: ".github/workflows/releaseguard.yml",
+          status: "modified",
+          patch: "+on:\n+  pull_request_target:\n+permissions:\n+  id-token: write\n+  contents: write",
+        },
+      ]),
+    );
+
+    expect(findings).toContainEqual(expect.objectContaining({ id: "security.sensitive-area-changed", severity: "warn" }));
+  });
 });

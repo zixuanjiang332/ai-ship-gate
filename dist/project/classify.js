@@ -80,8 +80,26 @@ export function patchContainsSecret(patch) {
     return addedLines(patch).some((line) => /\b[A-Z0-9_-]*(?:api[_-]?key|secret|token|password|access[_-]?key)[A-Z0-9_-]*\s*[:=]\s*['"]?[A-Za-z0-9_./+=-]{16,}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9_]{30,}|AKIA[0-9A-Z]{16}/i.test(line));
 }
 export function touchesSecuritySensitiveArea(path, patch) {
+    if (isWorkflowPath(path)) {
+        return workflowPatchHasElevatedSecurityRisk(patch);
+    }
     const haystack = `${normalize(path)}\n${patch}`.toLowerCase();
     return securityTerms.some((term) => haystack.includes(term));
+}
+function isWorkflowPath(path) {
+    return normalize(path).startsWith(".github/workflows/");
+}
+function workflowPatchHasElevatedSecurityRisk(patch) {
+    const added = addedLines(patch).join("\n").toLowerCase();
+    return (/\bpull_request_target\b/.test(added) ||
+        /\bworkflow_run\b/.test(added) ||
+        /\brepository_dispatch\b/.test(added) ||
+        /\bid-token\s*:\s*write\b/.test(added) ||
+        /\bactions\s*:\s*write\b/.test(added) ||
+        /\bsecurity-events\s*:\s*write\b/.test(added) ||
+        /\bpackages\s*:\s*write\b/.test(added) ||
+        /\bsecrets\s*:\s*inherit\b/.test(added) ||
+        /\bpersist-credentials\s*:\s*true\b/.test(added));
 }
 function addedLines(patch) {
     return patch

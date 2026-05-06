@@ -7,11 +7,27 @@ import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parse } from "yaml";
 import { isDirectRun, runAction } from "../../src/action.js";
+import type { ProjectMetadata } from "../../src/domain/types.js";
 
 let dir: string;
 let summaryPath: string;
 let outputPath: string;
 const execFileAsync = promisify(execFile);
+const baseMetadata: ProjectMetadata = {
+  hasPackageJson: true,
+  hasPackageLock: true,
+  hasPnpmLock: false,
+  hasYarnLock: false,
+  hasPyproject: false,
+  hasRequirements: false,
+  hasGoMod: false,
+  hasCargoToml: false,
+  hasPomXml: false,
+  hasDockerfile: false,
+  hasCompose: false,
+  hasGitHubActions: true,
+  hasEnvExample: true,
+};
 
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), "releaseguard-action-"));
@@ -172,8 +188,21 @@ describe("runAction", () => {
     expect(action.inputs["pr-comment"].description).toContain("pull request comment");
   });
 
+  it("declares a review-comments input with a safe default", async () => {
+    const action = parse(await readFile("action.yml", "utf8"));
+
+    expect(action.inputs["review-comments"].default).toBe("off");
+    expect(action.inputs["review-comments"].description).toContain("inline review comments");
+  });
+
   it("does not publish pull request comments by default", async () => {
     const runCheck = vi.fn().mockResolvedValue({
+      context: {
+        repoRoot: dir,
+        baseRef: "origin/main",
+        changedFiles: [],
+        metadata: baseMetadata,
+      },
       report: { verdict: "warn", findings: [] },
       rendered: "# ReleaseGuard AI: WARN\n",
       exitCode: 0,
@@ -192,8 +221,40 @@ describe("runAction", () => {
     expect(publishPrComment).not.toHaveBeenCalled();
   });
 
+  it("does not publish inline review comments by default", async () => {
+    const runCheck = vi.fn().mockResolvedValue({
+      context: {
+        repoRoot: dir,
+        baseRef: "origin/main",
+        changedFiles: [],
+        metadata: baseMetadata,
+      },
+      report: { verdict: "fail", findings: [] },
+      rendered: "# ReleaseGuard AI: FAIL\n",
+      exitCode: 1,
+    });
+    const publishReviewComments = vi.fn();
+
+    await runAction({
+      env: {
+        GITHUB_WORKSPACE: dir,
+        GITHUB_EVENT_NAME: "pull_request",
+      },
+      runCheck,
+      publishReviewComments,
+    });
+
+    expect(publishReviewComments).not.toHaveBeenCalled();
+  });
+
   it("publishes a pull request comment when explicitly enabled for pull_request events", async () => {
     const runCheck = vi.fn().mockResolvedValue({
+      context: {
+        repoRoot: dir,
+        baseRef: "origin/main",
+        changedFiles: [],
+        metadata: baseMetadata,
+      },
       report: {
         verdict: "fail",
         findings: [
@@ -251,8 +312,85 @@ describe("runAction", () => {
     );
   });
 
+  it("publishes smart-mode review comments only for supported anchored findings", async () => {
+    const runCheck = vi.fn().mockResolvedValue({
+      context: {
+        repoRoot: dir,
+        baseRef: "origin/main",
+        changedFiles: [
+          {
+            path: "src/auth.ts",
+            status: "modified",
+            patch: "@@ -1 +1,2 @@\n export const x = 1;\n+export const y = 2;\n",
+          },
+        ],
+        metadata: baseMetadata,
+      },
+      report: {
+        verdict: "warn",
+        findings: [
+          {
+            id: "tests.missing-related-tests",
+            severity: "warn",
+            title: "Source changed without tests",
+            message: "Source changed but tests did not.",
+            files: ["src/auth.ts"],
+            suggestion: "Add tests.",
+          },
+        ],
+      },
+      rendered: "# ReleaseGuard AI: WARN\n",
+      exitCode: 0,
+    });
+    const publishReviewComments = vi.fn().mockResolvedValue(undefined);
+    const eventPath = join(dir, "event.json");
+
+    await writeFile(
+      eventPath,
+      JSON.stringify({
+        pull_request: { number: 42, head: { sha: "abc123" } },
+        repository: { owner: { login: "zixuanjiang332" }, name: "releaseguard-ai" },
+      }),
+    );
+
+    await runAction({
+      env: {
+        GITHUB_WORKSPACE: dir,
+        GITHUB_EVENT_NAME: "pull_request",
+        GITHUB_EVENT_PATH: eventPath,
+        GITHUB_TOKEN: "token",
+        INPUT_REVIEW_COMMENTS: "smart",
+      },
+      runCheck,
+      publishReviewComments,
+    });
+
+    expect(publishReviewComments).toHaveBeenCalledTimes(1);
+    expect(publishReviewComments).toHaveBeenCalledWith(
+      expect.objectContaining({
+        owner: "zixuanjiang332",
+        repo: "releaseguard-ai",
+        pullNumber: 42,
+        commitId: "abc123",
+        token: "token",
+      }),
+      [
+        expect.objectContaining({
+          file: "src/auth.ts",
+          line: 2,
+        }),
+      ],
+    );
+  });
+
   it("accepts the GitHub Actions hyphenated input env name for pr-comment", async () => {
     const runCheck = vi.fn().mockResolvedValue({
+      context: {
+        repoRoot: dir,
+        baseRef: "origin/main",
+        changedFiles: [],
+        metadata: baseMetadata,
+      },
       report: {
         verdict: "fail",
         findings: [],
@@ -293,6 +431,12 @@ describe("runAction", () => {
 
   it("only publishes comments for fail verdicts in on-failure mode", async () => {
     const runCheck = vi.fn().mockResolvedValue({
+      context: {
+        repoRoot: dir,
+        baseRef: "origin/main",
+        changedFiles: [],
+        metadata: baseMetadata,
+      },
       report: {
         verdict: "warn",
         findings: [],

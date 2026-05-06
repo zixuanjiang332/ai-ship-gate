@@ -13,6 +13,10 @@ inputs:
     description: "Optional pull request comment mode: off, on-failure, or always."
     required: false
     default: "off"
+  review-comments:
+    description: "Optional inline review comments mode: off, fail-only, smart, or always."
+    required: false
+    default: "off"
 outputs:
   verdict:
     description: Final ReleaseGuard verdict, one of pass, warn, or fail.

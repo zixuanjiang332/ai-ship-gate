@@ -42,6 +42,7 @@ describe("runCheck", () => {
     });
 
     expect(result.report.verdict).toBe("warn");
+    expect(result.context).toEqual(context);
     expect(result.exitCode).toBe(0);
     expect(write).toHaveBeenCalledWith(expect.stringContaining("# ReleaseGuard AI: WARN"));
   });

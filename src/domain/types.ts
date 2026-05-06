@@ -72,6 +72,7 @@ export interface CheckOptions {
 }
 
 export interface CheckResult {
+  context: GateContext;
   report: GateReport;
   rendered: string;
   exitCode: number;

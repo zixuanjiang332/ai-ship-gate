@@ -10,7 +10,7 @@ const outputFormats = ["terminal", "json", "markdown", "sarif"];
 program
     .name("releaseguard")
     .description("A deterministic PR diff release gate for AI-generated code.")
-    .version("0.3.0");
+    .version("0.4.0");
 program
     .command("check")
     .description("Check the current git diff for release risk.")

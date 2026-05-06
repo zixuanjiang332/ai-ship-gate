@@ -1,6 +1,6 @@
 {
   "name": "releaseguard-ai",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A deterministic PR diff release gate for AI-generated code.",
   "license": "MIT",
   "type": "module",

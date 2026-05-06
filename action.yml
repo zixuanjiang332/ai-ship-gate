@@ -9,6 +9,10 @@ inputs:
     description: Enable optional AI explanation.
     required: false
     default: "false"
+  pr-comment:
+    description: "Optional pull request comment mode: off, on-failure, or always."
+    required: false
+    default: "off"
 outputs:
   verdict:
     description: Final ReleaseGuard verdict, one of pass, warn, or fail.

@@ -2,6 +2,18 @@
 
 All notable changes to ReleaseGuard AI will be documented in this file.
 
+## 0.4.0 - PR Comment Mode
+
+### Added
+
+- Optional GitHub Action `pr-comment` input with `off`, `on-failure`, and `always` modes.
+- Stable PR comment upsert behavior that updates the existing ReleaseGuard AI comment on reruns.
+- README workflow example showing the required token and `pull-requests: write` permission for PR comments.
+
+### Changed
+
+- README examples now pin the pre-v1 release tag to `v0.4.0`.
+
 ## 0.3.0 - SARIF Output
 
 ### Added

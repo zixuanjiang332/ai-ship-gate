@@ -7412,9 +7412,63 @@ var require_picocolors = __commonJS({
 });
 
 // src/action.ts
-import { appendFile } from "node:fs/promises";
+import { appendFile, readFile as readFile2 } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+// src/action/prComment.ts
+var releaseGuardCommentMarker = "<!-- releaseguard-ai-comment -->";
+async function upsertPullRequestComment(target, fetchImpl = fetch) {
+  const comments = await listComments(target, fetchImpl);
+  const existing = comments.find((comment) => comment.body.includes(releaseGuardCommentMarker));
+  if (existing) {
+    await request(
+      `https://api.github.com/repos/${target.owner}/${target.repo}/issues/comments/${existing.id}`,
+      {
+        method: "PATCH",
+        headers: jsonHeaders(target.token),
+        body: JSON.stringify({ body: target.body })
+      },
+      fetchImpl
+    );
+    return;
+  }
+  await request(
+    `https://api.github.com/repos/${target.owner}/${target.repo}/issues/${target.issueNumber}/comments`,
+    {
+      method: "POST",
+      headers: jsonHeaders(target.token),
+      body: JSON.stringify({ body: target.body })
+    },
+    fetchImpl
+  );
+}
+async function listComments(target, fetchImpl) {
+  return request(
+    `https://api.github.com/repos/${target.owner}/${target.repo}/issues/${target.issueNumber}/comments?per_page=100`,
+    {
+      method: "GET",
+      headers: jsonHeaders(target.token)
+    },
+    fetchImpl
+  );
+}
+async function request(url, init, fetchImpl) {
+  const response = await fetchImpl(url, init);
+  if (!response.ok) {
+    throw new Error(`GitHub comment request failed: ${response.status} ${response.statusText}`);
+  }
+  if (response.status === 204) return void 0;
+  return response.json();
+}
+function jsonHeaders(token) {
+  return {
+    authorization: `Bearer ${token}`,
+    accept: "application/vnd.github+json",
+    "content-type": "application/json",
+    "user-agent": "releaseguard-ai"
+  };
+}
 
 // src/reporters/actionSummary.ts
 var productName = "ReleaseGuard AI";
@@ -7480,6 +7534,69 @@ function sanitizeMarkdownText(value) {
 }
 function sanitizeMarkdownBlockText(value) {
   return sanitizeMarkdownText(value).replace(
+    /^(\s*)((?:#{1,6}|[-*+>])(?=\s)|\d+\.(?=\s)|-{3,}(?=\s|$))/,
+    "$1\\$2"
+  );
+}
+
+// src/reporters/prComment.ts
+var productName2 = "ReleaseGuard AI";
+var maxCommentFindings = 10;
+var releaseGuardCommentMarker2 = "<!-- releaseguard-ai-comment -->";
+function renderPrComment(report) {
+  const counts = summarizeFindings(report);
+  const verdict = report.verdict.toUpperCase();
+  const lines = [
+    releaseGuardCommentMarker2,
+    `## ${productName2}: ${verdict}`,
+    "",
+    "| Verdict | Findings | Fail | Warn | Info |",
+    "| --- | ---: | ---: | ---: | ---: |",
+    `| ${verdict} | ${counts.findingsCount} | ${counts.failCount} | ${counts.warnCount} | ${counts.infoCount} |`,
+    ""
+  ];
+  if (report.findings.length === 0) {
+    lines.push("No release risks detected.", "");
+  } else {
+    lines.push("## Top Findings", "", "| Severity | Rule | Files | Suggestion |", "| --- | --- | --- | --- |");
+    for (const finding of report.findings.slice(0, maxCommentFindings)) {
+      lines.push(formatFindingRow2(finding));
+    }
+    if (report.findings.length > maxCommentFindings) {
+      lines.push("", `Showing first ${maxCommentFindings} of ${report.findings.length} findings.`);
+    }
+    lines.push("");
+  }
+  if (report.aiSummary) {
+    lines.push("## AI Summary", "", sanitizeMarkdownBlockText2(report.aiSummary), "");
+  }
+  return lines.join("\n");
+}
+function formatFindingRow2(finding) {
+  return [
+    finding.severity.toUpperCase(),
+    formatInlineCode2(finding.id),
+    formatFiles2(finding.files),
+    sanitizeTableText2(finding.suggestion)
+  ].join(" | ").replace(/^/, "| ").replace(/$/, " |");
+}
+function formatFiles2(files) {
+  if (files.length === 0) return "-";
+  return files.map((file) => formatInlineCode2(file)).join(", ");
+}
+function formatInlineCode2(value) {
+  const sanitized = sanitizeTableText2(value);
+  if (sanitized.includes("\\`")) return sanitized;
+  return `\`${sanitized}\``;
+}
+function sanitizeTableText2(value) {
+  return sanitizeMarkdownText2(value).replaceAll("|", "\\|");
+}
+function sanitizeMarkdownText2(value) {
+  return value.replaceAll(/[\r\n]+/g, " ").replaceAll("`", "\\`").replaceAll("!", "\\!").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+function sanitizeMarkdownBlockText2(value) {
+  return sanitizeMarkdownText2(value).replace(
     /^(\s*)((?:#{1,6}|[-*+>])(?=\s)|\d+\.(?=\s)|-{3,}(?=\s|$))/,
     "$1\\$2"
   );
@@ -7768,11 +7885,11 @@ function renderJson(report) {
 }
 
 // src/reporters/markdown.ts
-var productName2 = "ReleaseGuard AI";
+var productName3 = "ReleaseGuard AI";
 function renderMarkdown(report) {
-  const lines = [`# ${productName2}: ${report.verdict.toUpperCase()}`, ""];
+  const lines = [`# ${productName3}: ${report.verdict.toUpperCase()}`, ""];
   if (report.aiSummary) {
-    lines.push("## AI Summary", "", sanitizeMarkdownBlockText2(report.aiSummary), "");
+    lines.push("## AI Summary", "", sanitizeMarkdownBlockText3(report.aiSummary), "");
   }
   if (report.findings.length === 0) {
     lines.push("No release risks detected.", "");
@@ -7786,24 +7903,24 @@ function renderMarkdown(report) {
 }
 function formatFinding(finding) {
   return [
-    `### ${finding.severity.toUpperCase()}: ${sanitizeMarkdownText2(finding.title)}`,
+    `### ${finding.severity.toUpperCase()}: ${sanitizeMarkdownText3(finding.title)}`,
     "",
-    `- Rule: ${formatInlineCode2(finding.id)}`,
-    `- Files: ${finding.files.map((file) => formatInlineCode2(file)).join(", ")}`,
-    `- Reason: ${sanitizeMarkdownText2(finding.message)}`,
-    `- Suggestion: ${sanitizeMarkdownText2(finding.suggestion)}`
+    `- Rule: ${formatInlineCode3(finding.id)}`,
+    `- Files: ${finding.files.map((file) => formatInlineCode3(file)).join(", ")}`,
+    `- Reason: ${sanitizeMarkdownText3(finding.message)}`,
+    `- Suggestion: ${sanitizeMarkdownText3(finding.suggestion)}`
   ].join("\n");
 }
-function formatInlineCode2(value) {
-  const sanitized = sanitizeMarkdownText2(value);
+function formatInlineCode3(value) {
+  const sanitized = sanitizeMarkdownText3(value);
   if (sanitized.includes("\\`")) return sanitized;
   return `\`${sanitized}\``;
 }
-function sanitizeMarkdownText2(value) {
+function sanitizeMarkdownText3(value) {
   return value.replaceAll(/[\r\n]+/g, " ").replaceAll("`", "\\`").replaceAll("!", "\\!").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
-function sanitizeMarkdownBlockText2(value) {
-  return sanitizeMarkdownText2(value).replace(
+function sanitizeMarkdownBlockText3(value) {
+  return sanitizeMarkdownText3(value).replace(
     /^(\s*)((?:#{1,6}|[-*+>])(?=\s)|\d+\.(?=\s)|-{3,}(?=\s|$))/,
     "$1\\$2"
   );
@@ -7891,11 +8008,11 @@ function cleanText(value) {
 
 // src/reporters/terminal.ts
 var import_picocolors = __toESM(require_picocolors(), 1);
-var productName3 = "ReleaseGuard AI";
+var productName4 = "ReleaseGuard AI";
 function renderTerminal(report, options = {}) {
   const color = options.color ?? true;
   const paint = color ? colorFor(report.verdict) : (value) => value;
-  const lines = [paint(`${productName3}: ${report.verdict.toUpperCase()}`), ""];
+  const lines = [paint(`${productName4}: ${report.verdict.toUpperCase()}`), ""];
   if (report.aiSummary) {
     lines.push("AI Summary", sanitizeTerminalText(report.aiSummary), "");
   }
@@ -8304,9 +8421,11 @@ function isRuleEnabled(ruleCheck, checks) {
 async function runAction(options = {}) {
   const env = options.env ?? process.env;
   const runCheck2 = options.runCheck ?? runCheck;
+  const publishPrComment = options.publishPrComment ?? publishPullRequestComment;
   const cwd = env.GITHUB_WORKSPACE ?? process.cwd();
   const base = env.INPUT_BASE || void 0;
   const ai = env.INPUT_AI?.trim().toLowerCase() === "true";
+  const prCommentMode = normalizePrCommentMode(env.INPUT_PR_COMMENT ?? env["INPUT_PR-COMMENT"]);
   const result = await runCheck2({
     cwd,
     base,
@@ -8315,6 +8434,21 @@ async function runAction(options = {}) {
   });
   if (env.GITHUB_STEP_SUMMARY) await appendFile(env.GITHUB_STEP_SUMMARY, renderActionSummary(result.report));
   if (env.GITHUB_OUTPUT) await appendFile(env.GITHUB_OUTPUT, renderActionOutputs(result.report));
+  if (shouldPublishPrComment(prCommentMode, env.GITHUB_EVENT_NAME, result.report.verdict)) {
+    const target = await readPullRequestTarget(env);
+    if (target) {
+      await publishPrComment(
+        {
+          ...target,
+          token: env.GITHUB_TOKEN ?? ""
+        },
+        {
+          ...result.report,
+          aiSummary: result.report.aiSummary
+        }
+      );
+    }
+  }
   return result.exitCode;
 }
 function renderActionOutputs(report) {
@@ -8326,6 +8460,32 @@ function renderActionOutputs(report) {
     `warn-count=${counts.warnCount}`,
     ""
   ].join("\n");
+}
+async function readPullRequestTarget(env) {
+  if (!env.GITHUB_EVENT_PATH || !env.GITHUB_TOKEN) return void 0;
+  const event = JSON.parse(await readFile2(env.GITHUB_EVENT_PATH, "utf8"));
+  const issueNumber = event.pull_request?.number;
+  const owner = event.repository?.owner?.login;
+  const repo = event.repository?.name;
+  if (!issueNumber || !owner || !repo) return void 0;
+  return { owner, repo, issueNumber };
+}
+function shouldPublishPrComment(mode, eventName, verdict) {
+  if (eventName !== "pull_request") return false;
+  if (mode === "off") return false;
+  if (mode === "always") return true;
+  return verdict === "fail";
+}
+function normalizePrCommentMode(value) {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === "always" || normalized === "on-failure") return normalized;
+  return "off";
+}
+async function publishPullRequestComment(target, report) {
+  await upsertPullRequestComment({
+    ...target,
+    body: renderPrComment(report)
+  });
 }
 function isDirectRun(argv, importMetaUrl) {
   return argv[1] !== void 0 && fileURLToPath(importMetaUrl) === resolve(argv[1]);

@@ -1,21 +1,26 @@
-import { appendFile } from "node:fs/promises";
+import { appendFile, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { GateReport } from "./domain/types.js";
+import { upsertPullRequestComment as defaultPublishPrComment } from "./action/prComment.js";
 import { renderActionSummary, summarizeFindings } from "./reporters/actionSummary.js";
+import { renderPrComment } from "./reporters/prComment.js";
 import { runCheck as defaultRunCheck } from "./run.js";
 
 interface ActionOptions {
   env?: Record<string, string | undefined>;
   runCheck?: typeof defaultRunCheck;
+  publishPrComment?: (target: PullRequestCommentContext & { token: string }, report: GateReport) => Promise<void>;
 }
 
 export async function runAction(options: ActionOptions = {}): Promise<number> {
   const env = options.env ?? process.env;
   const runCheck = options.runCheck ?? defaultRunCheck;
+  const publishPrComment = options.publishPrComment ?? publishPullRequestComment;
   const cwd = env.GITHUB_WORKSPACE ?? process.cwd();
   const base = env.INPUT_BASE || undefined;
   const ai = env.INPUT_AI?.trim().toLowerCase() === "true";
+  const prCommentMode = normalizePrCommentMode(env.INPUT_PR_COMMENT ?? env["INPUT_PR-COMMENT"]);
 
   const result = await runCheck({
     cwd,
@@ -26,6 +31,21 @@ export async function runAction(options: ActionOptions = {}): Promise<number> {
 
   if (env.GITHUB_STEP_SUMMARY) await appendFile(env.GITHUB_STEP_SUMMARY, renderActionSummary(result.report));
   if (env.GITHUB_OUTPUT) await appendFile(env.GITHUB_OUTPUT, renderActionOutputs(result.report));
+  if (shouldPublishPrComment(prCommentMode, env.GITHUB_EVENT_NAME, result.report.verdict)) {
+    const target = await readPullRequestTarget(env);
+    if (target) {
+      await publishPrComment(
+        {
+          ...target,
+          token: env.GITHUB_TOKEN ?? "",
+        },
+        {
+          ...result.report,
+          aiSummary: result.report.aiSummary,
+        },
+      );
+    }
+  }
 
   return result.exitCode;
 }
@@ -39,6 +59,56 @@ function renderActionOutputs(report: GateReport): string {
     `warn-count=${counts.warnCount}`,
     "",
   ].join("\n");
+}
+
+type PrCommentMode = "off" | "on-failure" | "always";
+
+interface PullRequestCommentContext {
+  owner: string;
+  repo: string;
+  issueNumber: number;
+}
+
+async function readPullRequestTarget(
+  env: Record<string, string | undefined>,
+): Promise<PullRequestCommentContext | undefined> {
+  if (!env.GITHUB_EVENT_PATH || !env.GITHUB_TOKEN) return undefined;
+
+  const event = JSON.parse(await readFile(env.GITHUB_EVENT_PATH, "utf8")) as {
+    pull_request?: { number?: number };
+    repository?: { owner?: { login?: string }; name?: string };
+  };
+
+  const issueNumber = event.pull_request?.number;
+  const owner = event.repository?.owner?.login;
+  const repo = event.repository?.name;
+
+  if (!issueNumber || !owner || !repo) return undefined;
+
+  return { owner, repo, issueNumber };
+}
+
+function shouldPublishPrComment(mode: PrCommentMode, eventName: string | undefined, verdict: GateReport["verdict"]): boolean {
+  if (eventName !== "pull_request") return false;
+  if (mode === "off") return false;
+  if (mode === "always") return true;
+  return verdict === "fail";
+}
+
+function normalizePrCommentMode(value: string | undefined): PrCommentMode {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === "always" || normalized === "on-failure") return normalized;
+  return "off";
+}
+
+async function publishPullRequestComment(
+  target: PullRequestCommentContext & { token: string },
+  report: GateReport,
+): Promise<void> {
+  await defaultPublishPrComment({
+    ...target,
+    body: renderPrComment(report),
+  });
 }
 
 export function isDirectRun(argv: string[], importMetaUrl: string): boolean {

@@ -164,6 +164,172 @@ describe("runAction", () => {
     expect(Object.keys(action.outputs)).toEqual(["verdict", "findings-count", "fail-count", "warn-count"]);
     expect(action.outputs.verdict.description).toContain("Final ReleaseGuard verdict");
   });
+
+  it("declares a pr-comment input with a safe default", async () => {
+    const action = parse(await readFile("action.yml", "utf8"));
+
+    expect(action.inputs["pr-comment"].default).toBe("off");
+    expect(action.inputs["pr-comment"].description).toContain("pull request comment");
+  });
+
+  it("does not publish pull request comments by default", async () => {
+    const runCheck = vi.fn().mockResolvedValue({
+      report: { verdict: "warn", findings: [] },
+      rendered: "# ReleaseGuard AI: WARN\n",
+      exitCode: 0,
+    });
+    const publishPrComment = vi.fn();
+
+    await runAction({
+      env: {
+        GITHUB_WORKSPACE: dir,
+        GITHUB_EVENT_NAME: "pull_request",
+      },
+      runCheck,
+      publishPrComment,
+    });
+
+    expect(publishPrComment).not.toHaveBeenCalled();
+  });
+
+  it("publishes a pull request comment when explicitly enabled for pull_request events", async () => {
+    const runCheck = vi.fn().mockResolvedValue({
+      report: {
+        verdict: "fail",
+        findings: [
+          {
+            id: "security.secret-in-diff",
+            severity: "fail",
+            title: "Secret-like value in diff",
+            message: "The diff contains a token-like value.",
+            files: ["src/config.ts"],
+            suggestion: "Remove it.",
+          },
+        ],
+      },
+      rendered: "# ReleaseGuard AI: FAIL\n",
+      exitCode: 1,
+    });
+    const publishPrComment = vi.fn().mockResolvedValue(undefined);
+    const eventPath = join(dir, "event.json");
+
+    await writeFile(
+      eventPath,
+      JSON.stringify({
+        pull_request: {
+          number: 42,
+        },
+        repository: {
+          owner: { login: "zixuanjiang332" },
+          name: "releaseguard-ai",
+        },
+      }),
+    );
+
+    await runAction({
+      env: {
+        GITHUB_WORKSPACE: dir,
+        GITHUB_EVENT_NAME: "pull_request",
+        GITHUB_EVENT_PATH: eventPath,
+        GITHUB_TOKEN: "token",
+        INPUT_PR_COMMENT: "always",
+      },
+      runCheck,
+      publishPrComment,
+    });
+
+    expect(publishPrComment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        owner: "zixuanjiang332",
+        repo: "releaseguard-ai",
+        issueNumber: 42,
+        token: "token",
+      }),
+      expect.objectContaining({
+        verdict: "fail",
+      }),
+    );
+  });
+
+  it("accepts the GitHub Actions hyphenated input env name for pr-comment", async () => {
+    const runCheck = vi.fn().mockResolvedValue({
+      report: {
+        verdict: "fail",
+        findings: [],
+      },
+      rendered: "# ReleaseGuard AI: FAIL\n",
+      exitCode: 1,
+    });
+    const publishPrComment = vi.fn().mockResolvedValue(undefined);
+    const eventPath = join(dir, "event.json");
+
+    await writeFile(
+      eventPath,
+      JSON.stringify({
+        pull_request: {
+          number: 42,
+        },
+        repository: {
+          owner: { login: "zixuanjiang332" },
+          name: "releaseguard-ai",
+        },
+      }),
+    );
+
+    await runAction({
+      env: {
+        GITHUB_WORKSPACE: dir,
+        GITHUB_EVENT_NAME: "pull_request",
+        GITHUB_EVENT_PATH: eventPath,
+        GITHUB_TOKEN: "token",
+        "INPUT_PR-COMMENT": "always",
+      },
+      runCheck,
+      publishPrComment,
+    });
+
+    expect(publishPrComment).toHaveBeenCalledTimes(1);
+  });
+
+  it("only publishes comments for fail verdicts in on-failure mode", async () => {
+    const runCheck = vi.fn().mockResolvedValue({
+      report: {
+        verdict: "warn",
+        findings: [],
+      },
+      rendered: "# ReleaseGuard AI: WARN\n",
+      exitCode: 0,
+    });
+    const publishPrComment = vi.fn().mockResolvedValue(undefined);
+    const eventPath = join(dir, "event.json");
+
+    await writeFile(
+      eventPath,
+      JSON.stringify({
+        pull_request: {
+          number: 42,
+        },
+        repository: {
+          owner: { login: "zixuanjiang332" },
+          name: "releaseguard-ai",
+        },
+      }),
+    );
+
+    await runAction({
+      env: {
+        GITHUB_WORKSPACE: dir,
+        GITHUB_EVENT_NAME: "pull_request",
+        GITHUB_EVENT_PATH: eventPath,
+        GITHUB_TOKEN: "token",
+        INPUT_PR_COMMENT: "on-failure",
+      },
+      runCheck,
+      publishPrComment,
+    });
+
+    expect(publishPrComment).not.toHaveBeenCalled();
+  });
 });
 
 describe("isDirectRun", () => {

@@ -38,7 +38,7 @@ Set `failOn: warn` to make WARN verdicts exit 1 too.
 
 ## GitHub Action
 
-Replace `owner-name` with the GitHub user or organization that publishes the action. In CI, prefer `origin/main` as the base ref after `actions/checkout`; local CLI runs commonly use `main`.
+In CI, prefer `origin/main` as the base ref after `actions/checkout`; local CLI runs commonly use `main`.
 
 ```yaml
 name: AI Ship Gate
@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: owner-name/ai-ship-gate@v1
+      - uses: zixuanjiang332/ai-ship-gate@v1
         with:
           base: origin/main
           ai: false

@@ -1,8 +1,9 @@
 import pc from "picocolors";
+const productName = "ReleaseGuard AI";
 export function renderTerminal(report, options = {}) {
     const color = options.color ?? true;
     const paint = color ? colorFor(report.verdict) : (value) => value;
-    const lines = [paint(`AI Ship Gate: ${report.verdict.toUpperCase()}`), ""];
+    const lines = [paint(`${productName}: ${report.verdict.toUpperCase()}`), ""];
     if (report.aiSummary) {
         lines.push("AI Summary", sanitizeTerminalText(report.aiSummary), "");
     }

@@ -1,2 +1,2 @@
-import type { ShipGateConfig } from "../domain/types.js";
-export declare const defaultConfig: ShipGateConfig;
+import type { ReleaseGuardConfig } from "../domain/types.js";
+export declare const defaultConfig: ReleaseGuardConfig;

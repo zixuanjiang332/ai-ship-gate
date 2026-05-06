@@ -8,8 +8,8 @@ import { runCheck } from "./run.js";
 const program = new Command();
 const outputFormats = ["terminal", "json", "markdown"];
 program
-    .name("shipgate")
-    .description("A deterministic release gate for AI-generated code.")
+    .name("releaseguard")
+    .description("A deterministic PR diff release gate for AI-generated code.")
     .version("0.1.0");
 program
     .command("check")
@@ -28,7 +28,7 @@ program
 });
 program
     .command("init")
-    .description("Create a shipgate.config.yaml file.")
+    .description("Create a releaseguard.config.yaml file.")
     .action(async () => {
     const yaml = [
         `failOn: ${defaultConfig.failOn}`,
@@ -43,8 +43,8 @@ program
         `  security: ${defaultConfig.checks.security}`,
         "",
     ].join("\n");
-    await writeFile("shipgate.config.yaml", yaml, { flag: "wx" });
-    console.log("Created shipgate.config.yaml");
+    await writeFile("releaseguard.config.yaml", yaml, { flag: "wx" });
+    console.log("Created releaseguard.config.yaml");
 });
 export function parseOutputFormat(value) {
     if (isOutputFormat(value)) {

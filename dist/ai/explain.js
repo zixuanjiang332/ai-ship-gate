@@ -47,7 +47,7 @@ export async function maybeExplainWithAi(options) {
     }
 }
 function timeoutMs(env) {
-    const value = env.SHIPGATE_AI_TIMEOUT_MS;
+    const value = env.RELEASEGUARD_AI_TIMEOUT_MS ?? env.SHIPGATE_AI_TIMEOUT_MS;
     if (!value)
         return defaultTimeoutMs;
     const parsed = Number(value);

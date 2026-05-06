@@ -3,8 +3,9 @@ import { join } from "node:path";
 import YAML from "yaml";
 import { defaultConfig } from "./defaults.js";
 const checkNames = ["tests", "dependencies", "ci", "docker", "env", "security"];
+export const CONFIG_FILE_NAME = "releaseguard.config.yaml";
 export async function loadConfig(cwd) {
-    const path = join(cwd, "shipgate.config.yaml");
+    const path = join(cwd, CONFIG_FILE_NAME);
     let raw;
     try {
         raw = await readFile(path, "utf8");

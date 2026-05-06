@@ -2,6 +2,7 @@
   "name": "ai-ship-gate",
   "version": "0.1.0",
   "description": "A deterministic release gate for AI-generated code.",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "shipgate": "./dist/cli.js"

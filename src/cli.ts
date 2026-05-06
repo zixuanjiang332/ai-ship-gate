@@ -8,18 +8,18 @@ import type { OutputFormat } from "./domain/types.js";
 import { runCheck } from "./run.js";
 
 const program = new Command();
-const outputFormats = ["terminal", "json", "markdown"] as const;
+const outputFormats = ["terminal", "json", "markdown", "sarif"] as const;
 
 program
   .name("releaseguard")
   .description("A deterministic PR diff release gate for AI-generated code.")
-  .version("0.2.0");
+  .version("0.3.0");
 
 program
   .command("check")
   .description("Check the current git diff for release risk.")
   .option("--base <ref>", "Base ref to compare against")
-  .option("--format <format>", "Output format: terminal, json, markdown", parseOutputFormat, "terminal")
+  .option("--format <format>", "Output format: terminal, json, markdown, sarif", parseOutputFormat, "terminal")
   .option("--ai", "Enable optional AI explanation", false)
   .action(async (options: { base?: string; format: OutputFormat; ai: boolean }) => {
     const result = await runCheck({

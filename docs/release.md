@@ -37,7 +37,7 @@ npm publish --access public
 For pre-v1 releases, create a matching tag after npm publish succeeds:
 
 ```sh
-gh release create v0.2.0 --target main --title "ReleaseGuard AI v0.2.0" --prerelease
+gh release create v0.3.0 --target main --title "ReleaseGuard AI v0.3.0" --prerelease
 ```
 
 Use the exact package version for the tag name so npm, GitHub Actions, and release notes stay aligned.

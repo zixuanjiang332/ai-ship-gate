@@ -3,6 +3,7 @@ import type { GateReport } from "../../src/domain/types.js";
 import { renderReport } from "../../src/reporters/index.js";
 import { renderJson } from "../../src/reporters/json.js";
 import { renderMarkdown } from "../../src/reporters/markdown.js";
+import { renderSarif } from "../../src/reporters/sarif.js";
 import { renderTerminal } from "../../src/reporters/terminal.js";
 
 const report: GateReport = {
@@ -135,6 +136,7 @@ describe("reporters", () => {
   it("dispatches rendering by format", () => {
     expect(renderReport(report, "json")).toBe(renderJson(report));
     expect(renderReport(report, "markdown")).toBe(renderMarkdown(report));
+    expect(renderReport(report, "sarif")).toBe(renderSarif(report));
     expect(renderReport(report, "terminal")).toBe(renderTerminal(report));
   });
 

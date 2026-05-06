@@ -1,9 +1,17 @@
 {
   "name": "releaseguard-ai",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A deterministic PR diff release gate for AI-generated code.",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zixuanjiang332/releaseguard-ai.git"
+  },
+  "homepage": "https://github.com/zixuanjiang332/releaseguard-ai#readme",
+  "bugs": {
+    "url": "https://github.com/zixuanjiang332/releaseguard-ai/issues"
+  },
   "bin": {
     "releaseguard": "dist/cli.js",
     "releaseguard-ai": "dist/cli.js"

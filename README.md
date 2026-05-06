@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-4ade80.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-pre--v1-f59e0b)](docs/release.md)
 
-![ReleaseGuard AI hero](docs/assets/releaseguard-ai-hero.svg)
+![ReleaseGuard AI hero](https://raw.githubusercontent.com/zixuanjiang332/releaseguard-ai/main/docs/assets/releaseguard-ai-hero.svg)
 
 AI coding makes changes fast. Shipping still needs a release gate.
 
@@ -15,7 +15,25 @@ ReleaseGuard AI checks a PR-sized git diff for practical release risks before me
 
 ## Quickstart
 
-Clone and run the current pre-v1 project locally:
+Run it without installing:
+
+```sh
+npx releaseguard-ai check --base main
+npx releaseguard-ai check --format markdown
+npx releaseguard-ai init
+```
+
+Or install the CLI globally:
+
+```sh
+npm install -g releaseguard-ai
+releaseguard check --base main
+releaseguard check --format json
+releaseguard check --ai
+releaseguard init
+```
+
+For local development:
 
 ```sh
 git clone https://github.com/zixuanjiang332/releaseguard-ai.git
@@ -25,7 +43,7 @@ npm run build
 node dist/cli.js check --base HEAD
 ```
 
-After building locally, the CLI supports:
+The local development command supports the same options:
 
 ```sh
 node dist/cli.js check --base main
@@ -35,9 +53,7 @@ node dist/cli.js check --ai
 node dist/cli.js init
 ```
 
-`node dist/cli.js init` writes `releaseguard.config.yaml`. It fails if that file already exists, so existing configuration is not overwritten.
-
-The npm package is not published yet. After npm publish, the planned zero-install path is `npx releaseguard-ai check`.
+`releaseguard init`, `npx releaseguard-ai init`, and `node dist/cli.js init` write `releaseguard.config.yaml`. They fail if that file already exists, so existing configuration is not overwritten.
 
 ## Example Output
 
@@ -110,7 +126,7 @@ jobs:
 
 ## Configuration
 
-Create `releaseguard.config.yaml` with `node dist/cli.js init`, or write one directly:
+Create `releaseguard.config.yaml` with `releaseguard init`, `npx releaseguard-ai init`, or `node dist/cli.js init`, or write one directly:
 
 ```yaml
 failOn: fail
@@ -128,7 +144,7 @@ checks:
 ## Optional AI Mode
 
 ```sh
-OPENAI_API_KEY=... node dist/cli.js check --ai
+OPENAI_API_KEY=... releaseguard check --ai
 ```
 
 AI mode reads deterministic findings and writes an explanation. It does not decide the verdict.
@@ -162,7 +178,7 @@ ReleaseGuard AI compares git refs. Full history makes base refs such as `origin/
 
 ## Roadmap
 
-- [ ] Publish `releaseguard-ai` to npm.
+- [x] Publish `releaseguard-ai` to npm.
 - [ ] Create a stable `v1` GitHub Action tag.
 - [ ] Draft GitHub Marketplace listing.
 - [ ] Add more language-aware risk heuristics.
@@ -170,6 +186,6 @@ ReleaseGuard AI compares git refs. Full history makes base refs such as `origin/
 
 ## Release Status
 
-ReleaseGuard AI is currently pre-v1. The CLI and Action are implemented and tested in this repository, but npm publish, `v1` tag creation, and Marketplace publishing are separate release steps.
+ReleaseGuard AI is currently pre-v1. The CLI is published on npm as `releaseguard-ai`; stable `v1` tag creation and Marketplace publishing are separate release steps.
 
 See [docs/release.md](docs/release.md) for the release checklist.

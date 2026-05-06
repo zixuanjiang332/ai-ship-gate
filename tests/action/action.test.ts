@@ -195,6 +195,14 @@ describe("runAction", () => {
     expect(action.inputs["review-comments"].description).toContain("inline review comments");
   });
 
+  it("documents the review-comments input in the README workflow example", async () => {
+    const readme = await readFile("README.md", "utf8");
+
+    expect(readme).toContain("review-comments: smart");
+    expect(readme).toContain("fail-only");
+    expect(readme).toContain("always");
+  });
+
   it("does not publish pull request comments by default", async () => {
     const runCheck = vi.fn().mockResolvedValue({
       context: {

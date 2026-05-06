@@ -1,7 +1,7 @@
 export type Severity = "info" | "warn" | "fail";
 export type Verdict = "pass" | "warn" | "fail";
 export type FailOn = "warn" | "fail";
-export type OutputFormat = "terminal" | "json" | "markdown";
+export type OutputFormat = "terminal" | "json" | "markdown" | "sarif";
 
 export interface Finding {
   id: string;

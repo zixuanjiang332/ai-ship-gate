@@ -2,6 +2,18 @@
 
 All notable changes to ReleaseGuard AI will be documented in this file.
 
+## 0.3.0 - SARIF Output
+
+### Added
+
+- `sarif` output format for `releaseguard check`.
+- SARIF reporter with severity mapping for GitHub code scanning workflows.
+- README examples showing how to generate and upload SARIF in GitHub Actions.
+
+### Changed
+
+- README examples now pin the pre-v1 release tag to `v0.3.0`.
+
 ## 0.2.0 - Action Summary
 
 ### Added

@@ -114,6 +114,7 @@ describe("parseOutputFormat", () => {
     expect(parseOutputFormat("terminal")).toBe("terminal");
     expect(parseOutputFormat("json")).toBe("json");
     expect(parseOutputFormat("markdown")).toBe("markdown");
+    expect(parseOutputFormat("sarif")).toBe("sarif");
   });
 
   it("rejects unsupported output formats", () => {

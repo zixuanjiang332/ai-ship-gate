@@ -8132,9 +8132,19 @@ function patchContainsSecret(patch) {
   );
 }
 function touchesSecuritySensitiveArea(path, patch) {
+  if (isWorkflowPath(path)) {
+    return workflowPatchHasElevatedSecurityRisk(patch);
+  }
   const haystack = `${normalize(path)}
 ${patch}`.toLowerCase();
   return securityTerms.some((term) => haystack.includes(term));
+}
+function isWorkflowPath(path) {
+  return normalize(path).startsWith(".github/workflows/");
+}
+function workflowPatchHasElevatedSecurityRisk(patch) {
+  const added = addedLines(patch).join("\n").toLowerCase();
+  return /\bpull_request_target\b/.test(added) || /\bworkflow_run\b/.test(added) || /\brepository_dispatch\b/.test(added) || /\bid-token\s*:\s*write\b/.test(added) || /\bactions\s*:\s*write\b/.test(added) || /\bsecurity-events\s*:\s*write\b/.test(added) || /\bpackages\s*:\s*write\b/.test(added) || /\bsecrets\s*:\s*inherit\b/.test(added) || /\bpersist-credentials\s*:\s*true\b/.test(added);
 }
 function addedLines(patch) {
   return patch.split(/\r?\n/).filter((line) => line.startsWith("+") && !line.startsWith("+++"));

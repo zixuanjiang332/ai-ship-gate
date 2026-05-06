@@ -1,0 +1,69 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">AI Ship Gate hero</title>
+  <desc id="desc">A dark code-themed hero image showing PASS, WARN, and FAIL release gate signals for AI-generated code.</desc>
+  <defs>
+    <radialGradient id="cyanGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(260 130) rotate(35) scale(360 260)">
+      <stop stop-color="#22d3ee" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="roseGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1030 140) rotate(135) scale(340 250)">
+      <stop stop-color="#fb7185" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#fb7185" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="greenGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(650 610) rotate(90) scale(360 260)">
+      <stop stop-color="#4ade80" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#4ade80" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="panel" x1="160" y1="72" x2="1120" y2="568" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0f172a" stop-opacity="0.88"/>
+      <stop offset="1" stop-color="#020617" stop-opacity="0.94"/>
+    </linearGradient>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M36 0H0V36" stroke="#ffffff" stroke-opacity="0.045" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="640" fill="#05070B"/>
+  <rect width="1280" height="640" fill="url(#cyanGlow)"/>
+  <rect width="1280" height="640" fill="url(#roseGlow)"/>
+  <rect width="1280" height="640" fill="url(#greenGlow)"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+
+  <g opacity="0.24" font-family="Consolas, 'SFMono-Regular', monospace" font-size="20" fill="#94a3b8">
+    <text x="52" y="92">+ src/auth.ts</text>
+    <text x="52" y="132">+ package.json</text>
+    <text x="52" y="172">+ .github/workflows/deploy.yml</text>
+    <text x="920" y="92">- missing tests</text>
+    <text x="920" y="132">+ OPENAI_API_KEY</text>
+    <text x="920" y="172">+ Dockerfile</text>
+    <text x="78" y="548">diff --git a/src/config.ts b/src/config.ts</text>
+    <text x="792" y="548">release gate: deterministic first</text>
+  </g>
+
+  <rect x="160" y="72" width="960" height="496" rx="28" fill="url(#panel)" stroke="#94a3b8" stroke-opacity="0.22"/>
+  <rect x="160" y="72" width="960" height="72" rx="28" fill="#0B1220" fill-opacity="0.9"/>
+  <path d="M160 144H1120" stroke="#ffffff" stroke-opacity="0.1"/>
+
+  <text x="206" y="116" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#F8FAFC">AI Ship Gate</text>
+  <g font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700">
+    <text x="792" y="116" fill="#4ADE80">CI passing</text>
+    <text x="908" y="116" fill="#38BDF8">npm ready</text>
+    <text x="1032" y="116" fill="#F59E0B">Action ready</text>
+  </g>
+
+  <text x="640" y="226" text-anchor="middle" font-family="Consolas, 'SFMono-Regular', monospace" font-size="18" letter-spacing="3" fill="#64748B">DIFF RISK SIGNAL</text>
+  <text x="640" y="292" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="48" font-weight="800" fill="#FFFFFF">Deterministic release gate</text>
+  <text x="640" y="346" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="44" font-weight="800" fill="#E2E8F0">for AI-generated code</text>
+  <text x="640" y="390" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="20" fill="#CBD5E1">Catch missing tests, dependency drift, env changes, CI/Docker risk, and secrets before a PR ships.</text>
+
+  <g font-family="Inter, Arial, sans-serif" font-size="24" font-weight="900">
+    <rect x="420" y="428" width="128" height="52" rx="10" fill="#4ADE80" fill-opacity="0.10" stroke="#4ADE80"/>
+    <text x="484" y="462" text-anchor="middle" fill="#4ADE80">PASS</text>
+    <rect x="576" y="428" width="128" height="52" rx="10" fill="#F59E0B" fill-opacity="0.10" stroke="#F59E0B"/>
+    <text x="640" y="462" text-anchor="middle" fill="#F59E0B">WARN</text>
+    <rect x="732" y="428" width="128" height="52" rx="10" fill="#FB7185" fill-opacity="0.10" stroke="#FB7185"/>
+    <text x="796" y="462" text-anchor="middle" fill="#FB7185">FAIL</text>
+  </g>
+
+  <rect x="432" y="508" width="416" height="54" rx="12" fill="#0F172A" fill-opacity="0.88" stroke="#67E8F9" stroke-opacity="0.34"/>
+  <text x="640" y="542" text-anchor="middle" font-family="Consolas, 'SFMono-Regular', monospace" font-size="22" fill="#67E8F9">npx ai-ship-gate check  -&gt;</text>
+</svg>

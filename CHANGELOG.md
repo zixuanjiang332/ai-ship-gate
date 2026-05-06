@@ -1,13 +1,13 @@
 # Changelog
 
-All notable changes to AI Ship Gate will be documented in this file.
+All notable changes to ReleaseGuard AI will be documented in this file.
 
 ## 0.1.0 - MVP
 
 ### Added
 
-- `shipgate check` CLI for deterministic release-risk checks.
-- `shipgate init` for `shipgate.config.yaml`.
+- `releaseguard check` CLI for deterministic release-risk checks.
+- `releaseguard init` for `releaseguard.config.yaml`.
 - Git diff collection and project metadata detection.
 - Rules for tests, dependencies, env files, CI/deploy/Docker changes, and secret-like values.
 - Terminal, JSON, and Markdown reporters.

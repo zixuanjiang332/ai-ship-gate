@@ -73,13 +73,18 @@ export async function runAction(options: ActionOptions = {}): Promise<number> {
         .filter((comment): comment is ReviewCommentPayload => Boolean(comment));
 
       if (comments.length > 0) {
-        await publishReviewComments(
-          {
-            ...target,
-            token: env.GITHUB_TOKEN ?? "",
-          },
-          comments,
-        );
+        try {
+          await publishReviewComments(
+            {
+              ...target,
+              token: env.GITHUB_TOKEN ?? "",
+            },
+            comments,
+          );
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error(`ReleaseGuard inline review comments failed: ${message}`);
+        }
       }
     }
   }

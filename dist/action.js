@@ -7645,14 +7645,7 @@ function jsonHeaders(token) {
 
 // src/action/reviewComments.ts
 async function publishReviewComments(target, comments, fetchImpl = fetch) {
-  const existingComments = await request2(
-    `https://api.github.com/repos/${target.owner}/${target.repo}/pulls/${target.pullNumber}/comments?per_page=100`,
-    {
-      method: "GET",
-      headers: jsonHeaders2(target.token)
-    },
-    fetchImpl
-  );
+  const existingComments = await listReviewComments(target, fetchImpl);
   for (const comment of comments) {
     if (existingComments.some((existingComment) => existingComment.body.includes(markerIdentity(comment.body)))) {
       continue;
@@ -7672,6 +7665,23 @@ async function publishReviewComments(target, comments, fetchImpl = fetch) {
       },
       fetchImpl
     );
+  }
+}
+async function listReviewComments(target, fetchImpl) {
+  const comments = [];
+  for (let page = 1; ; page += 1) {
+    const pageComments = await request2(
+      `https://api.github.com/repos/${target.owner}/${target.repo}/pulls/${target.pullNumber}/comments?per_page=100&page=${page}`,
+      {
+        method: "GET",
+        headers: jsonHeaders2(target.token)
+      },
+      fetchImpl
+    );
+    comments.push(...pageComments);
+    if (pageComments.length < 100) {
+      return comments;
+    }
   }
 }
 function markerIdentity(body) {
@@ -8630,13 +8640,18 @@ async function runAction(options = {}) {
         };
       }).filter((comment) => Boolean(comment));
       if (comments.length > 0) {
-        await publishReviewComments2(
-          {
-            ...target,
-            token: env.GITHUB_TOKEN ?? ""
-          },
-          comments
-        );
+        try {
+          await publishReviewComments2(
+            {
+              ...target,
+              token: env.GITHUB_TOKEN ?? ""
+            },
+            comments
+          );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error(`ReleaseGuard inline review comments failed: ${message}`);
+        }
       }
     }
   }

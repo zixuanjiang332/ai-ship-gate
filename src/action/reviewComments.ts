@@ -24,14 +24,7 @@ export async function publishReviewComments(
   comments: ReviewCommentPayload[],
   fetchImpl: FetchImpl = fetch,
 ): Promise<void> {
-  const existingComments = (await request(
-    `https://api.github.com/repos/${target.owner}/${target.repo}/pulls/${target.pullNumber}/comments?per_page=100`,
-    {
-      method: "GET",
-      headers: jsonHeaders(target.token),
-    },
-    fetchImpl,
-  )) as ExistingReviewComment[];
+  const existingComments = await listReviewComments(target, fetchImpl);
 
   for (const comment of comments) {
     if (existingComments.some((existingComment) => existingComment.body.includes(markerIdentity(comment.body)))) {
@@ -53,6 +46,30 @@ export async function publishReviewComments(
       },
       fetchImpl,
     );
+  }
+}
+
+async function listReviewComments(
+  target: ReviewCommentTarget,
+  fetchImpl: FetchImpl,
+): Promise<ExistingReviewComment[]> {
+  const comments: ExistingReviewComment[] = [];
+
+  for (let page = 1; ; page += 1) {
+    const pageComments = (await request(
+      `https://api.github.com/repos/${target.owner}/${target.repo}/pulls/${target.pullNumber}/comments?per_page=100&page=${page}`,
+      {
+        method: "GET",
+        headers: jsonHeaders(target.token),
+      },
+      fetchImpl,
+    )) as ExistingReviewComment[];
+
+    comments.push(...pageComments);
+
+    if (pageComments.length < 100) {
+      return comments;
+    }
   }
 }
 

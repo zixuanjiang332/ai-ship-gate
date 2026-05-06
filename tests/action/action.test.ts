@@ -391,6 +391,122 @@ describe("runAction", () => {
     );
   });
 
+  it("accepts the GitHub Actions hyphenated input env name for review-comments", async () => {
+    const runCheck = vi.fn().mockResolvedValue({
+      context: {
+        repoRoot: dir,
+        baseRef: "origin/main",
+        changedFiles: [
+          {
+            path: "src/auth.ts",
+            status: "modified",
+            patch: "@@ -1 +1,2 @@\n export const x = 1;\n+export const y = 2;\n",
+          },
+        ],
+        metadata: baseMetadata,
+      },
+      report: {
+        verdict: "warn",
+        findings: [
+          {
+            id: "tests.missing-related-tests",
+            severity: "warn",
+            title: "Source changed without tests",
+            message: "Source changed but tests did not.",
+            files: ["src/auth.ts"],
+            suggestion: "Add tests.",
+          },
+        ],
+      },
+      rendered: "# ReleaseGuard AI: WARN\n",
+      exitCode: 0,
+    });
+    const publishReviewComments = vi.fn().mockResolvedValue(undefined);
+    const eventPath = join(dir, "event.json");
+
+    await writeFile(
+      eventPath,
+      JSON.stringify({
+        pull_request: { number: 42, head: { sha: "abc123" } },
+        repository: { owner: { login: "zixuanjiang332" }, name: "releaseguard-ai" },
+      }),
+    );
+
+    await runAction({
+      env: {
+        GITHUB_WORKSPACE: dir,
+        GITHUB_EVENT_NAME: "pull_request",
+        GITHUB_EVENT_PATH: eventPath,
+        GITHUB_TOKEN: "token",
+        "INPUT_REVIEW-COMMENTS": "smart",
+      },
+      runCheck,
+      publishReviewComments,
+    });
+
+    expect(publishReviewComments).toHaveBeenCalledTimes(1);
+  });
+
+  it("logs and skips inline review comment publish failures without failing the action", async () => {
+    const runCheck = vi.fn().mockResolvedValue({
+      context: {
+        repoRoot: dir,
+        baseRef: "origin/main",
+        changedFiles: [
+          {
+            path: "src/auth.ts",
+            status: "modified",
+            patch: "@@ -1 +1,2 @@\n export const x = 1;\n+export const y = 2;\n",
+          },
+        ],
+        metadata: baseMetadata,
+      },
+      report: {
+        verdict: "warn",
+        findings: [
+          {
+            id: "tests.missing-related-tests",
+            severity: "warn",
+            title: "Source changed without tests",
+            message: "Source changed but tests did not.",
+            files: ["src/auth.ts"],
+            suggestion: "Add tests.",
+          },
+        ],
+      },
+      rendered: "# ReleaseGuard AI: WARN\n",
+      exitCode: 0,
+    });
+    const publishReviewComments = vi.fn().mockRejectedValue(new Error("review api down"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const eventPath = join(dir, "event.json");
+
+    await writeFile(
+      eventPath,
+      JSON.stringify({
+        pull_request: { number: 42, head: { sha: "abc123" } },
+        repository: { owner: { login: "zixuanjiang332" }, name: "releaseguard-ai" },
+      }),
+    );
+
+    await expect(
+      runAction({
+        env: {
+          GITHUB_WORKSPACE: dir,
+          GITHUB_EVENT_NAME: "pull_request",
+          GITHUB_EVENT_PATH: eventPath,
+          GITHUB_TOKEN: "token",
+          INPUT_REVIEW_COMMENTS: "smart",
+        },
+        runCheck,
+        publishReviewComments,
+      }),
+    ).resolves.toBe(0);
+
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("ReleaseGuard inline review comments failed"));
+    errorSpy.mockRestore();
+  });
+
   it("accepts the GitHub Actions hyphenated input env name for pr-comment", async () => {
     const runCheck = vi.fn().mockResolvedValue({
       context: {

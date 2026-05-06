@@ -68,4 +68,39 @@ describe("publishReviewComments", () => {
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
+
+  it("checks later pages before creating a comment", async () => {
+    const marker = "<!-- releaseguard-ai-review-comment rule=tests.missing-related-tests file=src/app.ts anchor=11 -->";
+    const firstPage = Array.from({ length: 100 }, (_, index) => ({ id: index + 1, body: `other ${index}` }));
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(firstPage), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([{ id: 101, body: `review body\n${marker}`, path: "src/app.ts" }]), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+
+    await publishReviewComments(
+      {
+        owner: "zixuanjiang332",
+        repo: "releaseguard-ai",
+        pullNumber: 17,
+        commitId: "abc123",
+        token: "token",
+      },
+      [{ body: `review body\n${marker}`, file: "src/app.ts", line: 11 }],
+      fetchImpl,
+    );
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl.mock.calls[0]?.[0]).toContain("page=1");
+    expect(fetchImpl.mock.calls[1]?.[0]).toContain("page=2");
+  });
 });

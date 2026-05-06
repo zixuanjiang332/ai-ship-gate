@@ -1,8 +1,5 @@
 export async function publishReviewComments(target, comments, fetchImpl = fetch) {
-    const existingComments = (await request(`https://api.github.com/repos/${target.owner}/${target.repo}/pulls/${target.pullNumber}/comments?per_page=100`, {
-        method: "GET",
-        headers: jsonHeaders(target.token),
-    }, fetchImpl));
+    const existingComments = await listReviewComments(target, fetchImpl);
     for (const comment of comments) {
         if (existingComments.some((existingComment) => existingComment.body.includes(markerIdentity(comment.body)))) {
             continue;
@@ -18,6 +15,19 @@ export async function publishReviewComments(target, comments, fetchImpl = fetch)
                 side: "RIGHT",
             }),
         }, fetchImpl);
+    }
+}
+async function listReviewComments(target, fetchImpl) {
+    const comments = [];
+    for (let page = 1;; page += 1) {
+        const pageComments = (await request(`https://api.github.com/repos/${target.owner}/${target.repo}/pulls/${target.pullNumber}/comments?per_page=100&page=${page}`, {
+            method: "GET",
+            headers: jsonHeaders(target.token),
+        }, fetchImpl));
+        comments.push(...pageComments);
+        if (pageComments.length < 100) {
+            return comments;
+        }
     }
 }
 function markerIdentity(body) {

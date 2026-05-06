@@ -80,7 +80,7 @@ Set `failOn: warn` to make WARN verdicts exit 1 too.
 | Test risk | Source-like changes without related test changes. | `tests.missing-related-tests` |
 | Dependency risk | Manifest changes without matching lockfile updates, risky install scripts. | `dependencies.lockfile-not-updated` |
 | Env risk | New env vars without examples, secret-like env values. | `env.example-not-updated` |
-| CI/deploy/Docker risk | Deploy workflow changes and Dockerfiles without healthchecks. | `deploy.workflow-changed` |
+| CI/deploy/Docker risk | Deploy workflow changes and Dockerfiles without healthchecks. | `deploy.config-changed` |
 | Security risk | Token, key, password, or secret-like values in the diff. | `security.secret-in-diff` |
 
 ## GitHub Action

@@ -3,15 +3,25 @@
 > A deterministic PR diff release gate for AI-generated code.
 
 [![CI](https://github.com/zixuanjiang332/releaseguard-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/zixuanjiang332/releaseguard-ai/actions/workflows/ci.yml)
-[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-pre--v1-38bdf8)](action.yml)
+[![npm version](https://img.shields.io/npm/v/releaseguard-ai.svg)](https://www.npmjs.com/package/releaseguard-ai)
+[![Release](https://img.shields.io/github/v/release/zixuanjiang332/releaseguard-ai?include_prereleases&label=release)](https://github.com/zixuanjiang332/releaseguard-ai/releases)
+[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-v0.1.1-38bdf8)](action.yml)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-4ade80.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-pre--v1-f59e0b)](docs/release.md)
 
 ![ReleaseGuard AI hero](https://raw.githubusercontent.com/zixuanjiang332/releaseguard-ai/main/docs/assets/releaseguard-ai-hero.svg)
 
-AI coding makes changes fast. Shipping still needs a release gate.
+AI writes code fast. ReleaseGuard checks what changed before it ships.
 
 ReleaseGuard AI checks a PR-sized git diff for practical release risks before merge: missing tests, dependency drift, unsafe env changes, CI and Docker changes, and secret-like values. Rules decide `PASS`, `WARN`, or `FAIL`; optional AI mode only explains the findings.
+
+## Why ReleaseGuard AI?
+
+- Catches release risks that AI-assisted edits often miss: tests, lockfiles, env examples, CI, Docker, and secrets.
+- Stays deterministic first: rule output decides the verdict, while optional AI mode only explains the findings.
+- Runs as both a zero-install CLI and a GitHub Action, so teams can try it on a real PR in minutes.
+- Produces human-readable and JSON/Markdown output for local checks, CI logs, and future automation.
 
 ## Quickstart
 
@@ -116,13 +126,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: zixuanjiang332/releaseguard-ai@main
+      - uses: zixuanjiang332/releaseguard-ai@v0.1.1
         with:
           base: origin/main
           ai: false
 ```
 
-`@main` is suitable for pre-v1 testing. Switch to `@v1` after the first stable release tag exists. See [docs/release.md](docs/release.md).
+Use `@v0.1.1` for reproducible pre-v1 runs. Use `@main` only when intentionally testing the latest repository state. Switch to `@v1` after the first stable release tag exists. See [docs/release.md](docs/release.md).
 
 ## Configuration
 
@@ -179,13 +189,14 @@ ReleaseGuard AI compares git refs. Full history makes base refs such as `origin/
 ## Roadmap
 
 - [x] Publish `releaseguard-ai` to npm.
-- [ ] Create a stable `v1` GitHub Action tag.
-- [ ] Draft GitHub Marketplace listing.
+- [x] Create the first pre-v1 GitHub Release.
+- [ ] Add a GitHub Action job summary report.
+- [ ] Add optional PR annotations or SARIF output.
 - [ ] Add more language-aware risk heuristics.
-- [ ] Add optional machine-readable annotations without changing deterministic verdicts.
+- [ ] Prepare a stable `v1` Action tag and GitHub Marketplace draft.
 
 ## Release Status
 
-ReleaseGuard AI is currently pre-v1. The CLI is published on npm as `releaseguard-ai`; stable `v1` tag creation and Marketplace publishing are separate release steps.
+ReleaseGuard AI is currently pre-v1. The CLI is published on npm as `releaseguard-ai`, and the latest pre-v1 GitHub Release is `v0.1.1`; stable `v1` tag creation and Marketplace publishing are separate release steps.
 
 See [docs/release.md](docs/release.md) for the release checklist.

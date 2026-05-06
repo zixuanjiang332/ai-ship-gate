@@ -1,6 +1,6 @@
 # Release Checklist
 
-AI Ship Gate is currently pre-v1. Use this checklist before creating a public release.
+ReleaseGuard AI is currently pre-v1. Use this checklist before creating a public release.
 
 ## Before `v1`
 
@@ -20,6 +20,8 @@ Confirm:
 - `dist/action.js` is committed and bundled for GitHub Action users.
 - `action.yml` points to `dist/action.js`.
 - README does not claim unimplemented features.
+- The GitHub repository has been renamed from `ai-ship-gate` to `releaseguard-ai`.
+- The CI badge and Action examples point to `zixuanjiang332/releaseguard-ai`.
 - The Action example points to an existing tag before recommending `@v1` as stable.
 
 ## npm Publish

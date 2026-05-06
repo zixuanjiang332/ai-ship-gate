@@ -97,7 +97,41 @@ describe("maybeExplainWithAi", () => {
 
   it("returns undefined when the provider request times out", async () => {
     vi.useFakeTimers();
+    let observedSignal: AbortSignal | undefined;
     const fetch = vi.fn((_url: string | URL | Request, init?: RequestInit) => {
+      observedSignal = init?.signal;
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("The operation was aborted.", "AbortError"));
+        });
+      });
+    });
+
+    try {
+      void maybeExplainWithAi({
+        enabled: true,
+        report,
+        env: {
+          OPENAI_API_KEY: "test-key",
+          RELEASEGUARD_AI_TIMEOUT_MS: "5",
+        },
+        fetch,
+      });
+
+      await vi.advanceTimersByTimeAsync(5);
+
+      expect(observedSignal?.aborted).toBe(true);
+    } finally {
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    }
+  });
+
+  it("uses the deprecated SHIPGATE timeout env var as a fallback", async () => {
+    vi.useFakeTimers();
+    let observedSignal: AbortSignal | undefined;
+    const fetch = vi.fn((_url: string | URL | Request, init?: RequestInit) => {
+      observedSignal = init?.signal;
       return new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener("abort", () => {
           reject(new DOMException("The operation was aborted.", "AbortError"));
@@ -118,9 +152,11 @@ describe("maybeExplainWithAi", () => {
 
       await vi.advanceTimersByTimeAsync(5);
 
+      expect(observedSignal?.aborted).toBe(true);
       await expect(summary).resolves.toBeUndefined();
       expect(vi.getTimerCount()).toBe(0);
     } finally {
+      vi.clearAllTimers();
       vi.useRealTimers();
     }
   });

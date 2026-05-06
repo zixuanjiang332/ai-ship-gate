@@ -27,14 +27,14 @@ describe("reporters", () => {
 
   it("renders Markdown", () => {
     const markdown = renderMarkdown(report);
-    expect(markdown).toContain("# AI Ship Gate: WARN");
+    expect(markdown).toContain("# ReleaseGuard AI: WARN");
     expect(markdown).toContain("tests.missing-related-tests");
     expect(markdown).toContain("This change needs test coverage");
   });
 
   it("renders terminal text", () => {
     const terminal = renderTerminal(report, { color: false });
-    expect(terminal).toContain("AI Ship Gate: WARN");
+    expect(terminal).toContain("ReleaseGuard AI: WARN");
     expect(terminal).toContain("Source changed without tests");
   });
 
@@ -144,9 +144,9 @@ describe("reporters", () => {
       findings: [],
     };
 
-    expect(renderMarkdown(passReport)).toContain("# AI Ship Gate: PASS");
+    expect(renderMarkdown(passReport)).toContain("# ReleaseGuard AI: PASS");
     expect(renderMarkdown(passReport)).toContain("No release risks detected.");
-    expect(renderTerminal(passReport, { color: false })).toContain("AI Ship Gate: PASS");
+    expect(renderTerminal(passReport, { color: false })).toContain("ReleaseGuard AI: PASS");
     expect(renderTerminal(passReport, { color: false })).toContain("No release risks detected.");
   });
 });

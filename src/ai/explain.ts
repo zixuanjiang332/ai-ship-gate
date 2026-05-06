@@ -61,7 +61,7 @@ export async function maybeExplainWithAi(options: ExplainOptions): Promise<strin
 }
 
 function timeoutMs(env: Record<string, string | undefined>): number {
-  const value = env.SHIPGATE_AI_TIMEOUT_MS;
+  const value = env.RELEASEGUARD_AI_TIMEOUT_MS ?? env.SHIPGATE_AI_TIMEOUT_MS;
   if (!value) return defaultTimeoutMs;
 
   const parsed = Number(value);

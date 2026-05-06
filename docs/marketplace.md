@@ -10,4 +10,4 @@ Do not publish the Action to Marketplace until:
 - The bundled `dist/action.js` runs without `node_modules`.
 - The release notes explain what the Action checks and what it does not do.
 
-Marketplace publishing is optional. The repository can still be used directly as a GitHub Action once a tag exists.
+Marketplace publishing is optional. ReleaseGuard AI can still be used directly as a GitHub Action once a tag exists.

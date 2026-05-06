@@ -1,6 +1,6 @@
 # Risky Diff Demo
 
-This demo describes a PR that should be stopped by AI Ship Gate before it ships:
+This demo describes a PR that should be stopped by ReleaseGuard AI before it ships:
 
 - `src/auth.ts` changes behavior.
 - No test files changed.

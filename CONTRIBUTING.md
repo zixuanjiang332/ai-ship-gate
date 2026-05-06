@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve AI Ship Gate.
+Thanks for helping improve ReleaseGuard AI.
 
 ## Local Setup
 
@@ -35,6 +35,6 @@ Use focused pull requests. Include:
 
 ## Project Boundaries
 
-AI Ship Gate is deterministic first. Optional AI output may explain findings, but it must not decide PASS, WARN, or FAIL.
+ReleaseGuard AI is deterministic first. Optional AI output may explain findings, but it must not decide PASS, WARN, or FAIL.
 
 Do not add claims for unsupported features such as auto-fix, SARIF, PR comments, SaaS, or dashboards unless the feature is implemented and tested.

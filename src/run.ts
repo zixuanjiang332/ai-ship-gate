@@ -1,6 +1,6 @@
 import { maybeExplainWithAi } from "./ai/explain.js";
 import { loadConfig } from "./config/loadConfig.js";
-import type { CheckOptions, CheckResult, GateReport, ShipGateConfig } from "./domain/types.js";
+import type { CheckOptions, CheckResult, GateReport, ReleaseGuardConfig } from "./domain/types.js";
 import { aggregateVerdict, shouldExitWithFailure } from "./domain/verdict.js";
 import { collectGitContext } from "./git/git.js";
 import { renderReport } from "./reporters/index.js";
@@ -35,6 +35,9 @@ export async function runCheck(options: CheckOptions): Promise<CheckResult> {
   };
 }
 
-function isRuleEnabled(ruleCheck: keyof ShipGateConfig["checks"], checks: ShipGateConfig["checks"]): boolean {
+function isRuleEnabled(
+  ruleCheck: keyof ReleaseGuardConfig["checks"],
+  checks: ReleaseGuardConfig["checks"],
+): boolean {
   return checks[ruleCheck];
 }

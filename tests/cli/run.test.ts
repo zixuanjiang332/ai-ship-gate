@@ -43,7 +43,7 @@ describe("runCheck", () => {
 
     expect(result.report.verdict).toBe("warn");
     expect(result.exitCode).toBe(0);
-    expect(write).toHaveBeenCalledWith(expect.stringContaining("# AI Ship Gate: WARN"));
+    expect(write).toHaveBeenCalledWith(expect.stringContaining("# ReleaseGuard AI: WARN"));
   });
 
   it("returns exit code 1 when failOn threshold is reached", async () => {
@@ -65,10 +65,10 @@ describe("runCheck", () => {
   });
 
   it("loads config from the collected repo root", async () => {
-    const repoRoot = await mkdtemp(join(tmpdir(), "shipgate-root-config-"));
+    const repoRoot = await mkdtemp(join(tmpdir(), "releaseguard-root-config-"));
     const cwd = join(repoRoot, "packages", "app");
     await mkdir(cwd, { recursive: true });
-    await writeFile(join(repoRoot, "shipgate.config.yaml"), "failOn: warn\n");
+    await writeFile(join(repoRoot, "releaseguard.config.yaml"), "failOn: warn\n");
 
     const collectContext = vi.fn().mockResolvedValue({
       ...context,
@@ -88,8 +88,8 @@ describe("runCheck", () => {
   });
 
   it("does not run disabled checks", async () => {
-    const repoRoot = await mkdtemp(join(tmpdir(), "shipgate-disabled-check-"));
-    await writeFile(join(repoRoot, "shipgate.config.yaml"), "checks:\n  tests: false\n");
+    const repoRoot = await mkdtemp(join(tmpdir(), "releaseguard-disabled-check-"));
+    await writeFile(join(repoRoot, "releaseguard.config.yaml"), "checks:\n  tests: false\n");
 
     const collectContext = vi.fn().mockResolvedValue({
       ...context,

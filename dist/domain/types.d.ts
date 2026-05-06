@@ -36,7 +36,7 @@ export interface GateContext {
     changedFiles: ChangedFile[];
     metadata: ProjectMetadata;
 }
-export interface ShipGateConfig {
+export interface ReleaseGuardConfig {
     failOn: FailOn;
     ai: {
         enabled: boolean;

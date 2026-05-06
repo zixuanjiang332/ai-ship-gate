@@ -49,10 +49,10 @@
   <path d="M160 144H1120" stroke="#ffffff" stroke-opacity="0.1"/>
 
   <text x="206" y="116" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#F8FAFC">AI Ship Gate</text>
-  <g font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700">
-    <text x="792" y="116" fill="#4ADE80">diff scan</text>
-    <text x="908" y="116" fill="#38BDF8">AI explain</text>
-    <text x="1032" y="116" fill="#F59E0B">Action mode</text>
+  <g font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700" text-anchor="middle">
+    <text x="800" y="116" fill="#4ADE80">diff scan</text>
+    <text x="930" y="116" fill="#38BDF8">AI explain</text>
+    <text x="1056" y="116" fill="#F59E0B">Action mode</text>
   </g>
 
   <text x="640" y="226" text-anchor="middle" font-family="Consolas, 'SFMono-Regular', monospace" font-size="18" letter-spacing="3" fill="#64748B">DIFF RISK SIGNAL</text>

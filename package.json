@@ -11,6 +11,10 @@
     "dist",
     "action.yml",
     "README.md",
+    "docs/assets/ship-gate-hero.svg",
+    "docs/release.md",
+    "docs/marketplace.md",
+    "examples/risky-diff.md",
     "shipgate.config.example.yaml"
   ],
   "scripts": {

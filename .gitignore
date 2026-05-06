@@ -5,3 +5,4 @@ coverage/
 .env.*
 !.env.example
 shipgate.config.yaml
+docs/superpowers/

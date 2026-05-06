@@ -1,6 +1,6 @@
-import type { ShipGateConfig } from "../domain/types.js";
+import type { ReleaseGuardConfig } from "../domain/types.js";
 
-export const defaultConfig: ShipGateConfig = {
+export const defaultConfig: ReleaseGuardConfig = {
   failOn: "fail",
   ai: {
     enabled: false,

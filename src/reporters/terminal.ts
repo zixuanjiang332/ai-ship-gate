@@ -1,10 +1,12 @@
 import pc from "picocolors";
 import type { Finding, GateReport, Verdict } from "../domain/types.js";
 
+const productName = "ReleaseGuard AI";
+
 export function renderTerminal(report: GateReport, options: { color?: boolean } = {}): string {
   const color = options.color ?? true;
   const paint = color ? colorFor(report.verdict) : (value: string) => value;
-  const lines = [paint(`AI Ship Gate: ${report.verdict.toUpperCase()}`), ""];
+  const lines = [paint(`${productName}: ${report.verdict.toUpperCase()}`), ""];
 
   if (report.aiSummary) {
     lines.push("AI Summary", sanitizeTerminalText(report.aiSummary), "");

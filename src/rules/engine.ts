@@ -1,8 +1,8 @@
-import type { Finding, GateContext, ShipGateConfig } from "../domain/types.js";
+import type { Finding, GateContext, ReleaseGuardConfig } from "../domain/types.js";
 
 export interface Rule {
   id: string;
-  check: keyof ShipGateConfig["checks"];
+  check: keyof ReleaseGuardConfig["checks"];
   run(context: GateContext): Finding[];
 }
 

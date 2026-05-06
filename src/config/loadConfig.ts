@@ -1,13 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import YAML from "yaml";
-import type { ShipGateConfig } from "../domain/types.js";
+import type { ReleaseGuardConfig } from "../domain/types.js";
 import { defaultConfig } from "./defaults.js";
 
-type CheckName = keyof ShipGateConfig["checks"];
+type CheckName = keyof ReleaseGuardConfig["checks"];
 
 interface ConfigInput {
-  failOn?: ShipGateConfig["failOn"];
+  failOn?: ReleaseGuardConfig["failOn"];
   ai?: {
     enabled?: boolean;
   };
@@ -16,8 +16,10 @@ interface ConfigInput {
 
 const checkNames: CheckName[] = ["tests", "dependencies", "ci", "docker", "env", "security"];
 
-export async function loadConfig(cwd: string): Promise<ShipGateConfig> {
-  const path = join(cwd, "shipgate.config.yaml");
+export const CONFIG_FILE_NAME = "releaseguard.config.yaml";
+
+export async function loadConfig(cwd: string): Promise<ReleaseGuardConfig> {
+  const path = join(cwd, CONFIG_FILE_NAME);
   let raw: string;
 
   try {
@@ -33,7 +35,7 @@ export async function loadConfig(cwd: string): Promise<ShipGateConfig> {
   return mergeConfig(validateConfig(parsed));
 }
 
-export function mergeConfig(config: ConfigInput): ShipGateConfig {
+export function mergeConfig(config: ConfigInput): ReleaseGuardConfig {
   const checks = { ...defaultConfig.checks };
 
   for (const checkName of checkNames) {

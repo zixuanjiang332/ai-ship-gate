@@ -1,7 +1,9 @@
 import type { Finding, GateReport } from "../domain/types.js";
 
+const productName = "ReleaseGuard AI";
+
 export function renderMarkdown(report: GateReport): string {
-  const lines = [`# AI Ship Gate: ${report.verdict.toUpperCase()}`, ""];
+  const lines = [`# ${productName}: ${report.verdict.toUpperCase()}`, ""];
 
   if (report.aiSummary) {
     lines.push("## AI Summary", "", sanitizeMarkdownBlockText(report.aiSummary), "");

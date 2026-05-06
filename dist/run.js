@@ -25,6 +25,7 @@ export async function runCheck(options) {
     const write = options.write ?? ((output) => process.stdout.write(output));
     write(rendered);
     return {
+        context,
         report,
         rendered,
         exitCode: shouldExitWithFailure(verdict, config.failOn) ? 1 : 0,

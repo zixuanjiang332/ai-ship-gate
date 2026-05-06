@@ -6,12 +6,26 @@ interface ActionOptions {
     publishPrComment?: (target: PullRequestCommentContext & {
         token: string;
     }, report: GateReport) => Promise<void>;
+    publishReviewComments?: (target: PullRequestReviewCommentContext & {
+        token: string;
+    }, comments: ReviewCommentPayload[]) => Promise<void>;
 }
 export declare function runAction(options?: ActionOptions): Promise<number>;
 interface PullRequestCommentContext {
     owner: string;
     repo: string;
     issueNumber: number;
+}
+interface PullRequestReviewCommentContext {
+    owner: string;
+    repo: string;
+    pullNumber: number;
+    commitId: string;
+}
+interface ReviewCommentPayload {
+    body: string;
+    file: string;
+    line: number;
 }
 export declare function isDirectRun(argv: string[], importMetaUrl: string): boolean;
 export {};

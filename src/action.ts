@@ -1,6 +1,8 @@
 import { appendFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { GateReport } from "./domain/types.js";
+import { renderActionSummary, summarizeFindings } from "./reporters/actionSummary.js";
 import { runCheck as defaultRunCheck } from "./run.js";
 
 interface ActionOptions {
@@ -22,11 +24,21 @@ export async function runAction(options: ActionOptions = {}): Promise<number> {
     ai,
   });
 
-  if (env.GITHUB_STEP_SUMMARY) {
-    await appendFile(env.GITHUB_STEP_SUMMARY, result.rendered);
-  }
+  if (env.GITHUB_STEP_SUMMARY) await appendFile(env.GITHUB_STEP_SUMMARY, renderActionSummary(result.report));
+  if (env.GITHUB_OUTPUT) await appendFile(env.GITHUB_OUTPUT, renderActionOutputs(result.report));
 
   return result.exitCode;
+}
+
+function renderActionOutputs(report: GateReport): string {
+  const counts = summarizeFindings(report);
+  return [
+    `verdict=${report.verdict}`,
+    `findings-count=${counts.findingsCount}`,
+    `fail-count=${counts.failCount}`,
+    `warn-count=${counts.warnCount}`,
+    "",
+  ].join("\n");
 }
 
 export function isDirectRun(argv: string[], importMetaUrl: string): boolean {

@@ -5,7 +5,7 @@
 [![CI](https://github.com/zixuanjiang332/releaseguard-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/zixuanjiang332/releaseguard-ai/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/releaseguard-ai.svg)](https://www.npmjs.com/package/releaseguard-ai)
 [![Release](https://img.shields.io/github/v/release/zixuanjiang332/releaseguard-ai?include_prereleases&label=release)](https://github.com/zixuanjiang332/releaseguard-ai/releases)
-[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-v0.1.1-38bdf8)](action.yml)
+[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-v0.2.0-38bdf8)](action.yml)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-4ade80.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-pre--v1-f59e0b)](docs/release.md)
@@ -126,13 +126,27 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: zixuanjiang332/releaseguard-ai@v0.1.1
+      - id: releaseguard
+        uses: zixuanjiang332/releaseguard-ai@v0.2.0
         with:
           base: origin/main
           ai: false
+
+      - name: Print verdict
+        if: always()
+        run: echo "ReleaseGuard verdict: ${{ steps.releaseguard.outputs.verdict }}"
 ```
 
-Use `@v0.1.1` for reproducible pre-v1 runs. Use `@main` only when intentionally testing the latest repository state. Switch to `@v1` after the first stable release tag exists. See [docs/release.md](docs/release.md).
+Use `@v0.2.0` for reproducible pre-v1 runs. Use `@main` only when intentionally testing the latest repository state. Switch to `@v1` after the first stable release tag exists. See [docs/release.md](docs/release.md).
+
+The Action writes a GitHub job summary with the final verdict, finding counts, and top findings table. It also exposes outputs for later workflow steps:
+
+| Output | Meaning |
+| --- | --- |
+| `verdict` | Final verdict: `pass`, `warn`, or `fail`. |
+| `findings-count` | Total findings in the checked diff. |
+| `fail-count` | Number of fail-severity findings. |
+| `warn-count` | Number of warn-severity findings. |
 
 ## Configuration
 
@@ -190,13 +204,13 @@ ReleaseGuard AI compares git refs. Full history makes base refs such as `origin/
 
 - [x] Publish `releaseguard-ai` to npm.
 - [x] Create the first pre-v1 GitHub Release.
-- [ ] Add a GitHub Action job summary report.
+- [x] Add a GitHub Action job summary report.
 - [ ] Add optional PR annotations or SARIF output.
 - [ ] Add more language-aware risk heuristics.
 - [ ] Prepare a stable `v1` Action tag and GitHub Marketplace draft.
 
 ## Release Status
 
-ReleaseGuard AI is currently pre-v1. The CLI is published on npm as `releaseguard-ai`, and the latest pre-v1 GitHub Release is `v0.1.1`; stable `v1` tag creation and Marketplace publishing are separate release steps.
+ReleaseGuard AI is currently pre-v1. The CLI is published on npm as `releaseguard-ai`, and the latest pre-v1 GitHub Release is `v0.2.0`; stable `v1` tag creation and Marketplace publishing are separate release steps.
 
 See [docs/release.md](docs/release.md) for the release checklist.

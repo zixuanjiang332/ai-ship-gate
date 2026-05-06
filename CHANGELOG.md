@@ -2,6 +2,18 @@
 
 All notable changes to ReleaseGuard AI will be documented in this file.
 
+## 0.2.0 - Action Summary
+
+### Added
+
+- Rich GitHub Action job summary with verdict counts and top findings.
+- GitHub Action outputs for `verdict`, `findings-count`, `fail-count`, and `warn-count`.
+- README workflow example showing how to consume the Action verdict output.
+
+### Changed
+
+- Action examples now pin the pre-v1 release tag instead of `main`.
+
 ## 0.1.0 - MVP
 
 ### Added

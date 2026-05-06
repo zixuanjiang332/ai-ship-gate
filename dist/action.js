@@ -7416,6 +7416,75 @@ import { appendFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// src/reporters/actionSummary.ts
+var productName = "ReleaseGuard AI";
+var maxSummaryFindings = 10;
+function summarizeFindings(report) {
+  return {
+    findingsCount: report.findings.length,
+    failCount: report.findings.filter((finding) => finding.severity === "fail").length,
+    warnCount: report.findings.filter((finding) => finding.severity === "warn").length,
+    infoCount: report.findings.filter((finding) => finding.severity === "info").length
+  };
+}
+function renderActionSummary(report) {
+  const counts = summarizeFindings(report);
+  const verdict = report.verdict.toUpperCase();
+  const lines = [
+    `# ${productName}: ${verdict}`,
+    "",
+    "| Verdict | Findings | Fail | Warn | Info |",
+    "| --- | ---: | ---: | ---: | ---: |",
+    `| ${verdict} | ${counts.findingsCount} | ${counts.failCount} | ${counts.warnCount} | ${counts.infoCount} |`,
+    ""
+  ];
+  if (report.findings.length === 0) {
+    lines.push("No release risks detected.", "");
+  } else {
+    lines.push("## Top Findings", "", "| Severity | Rule | Files | Suggestion |", "| --- | --- | --- | --- |");
+    for (const finding of report.findings.slice(0, maxSummaryFindings)) {
+      lines.push(formatFindingRow(finding));
+    }
+    if (report.findings.length > maxSummaryFindings) {
+      lines.push("", `Showing first ${maxSummaryFindings} of ${report.findings.length} findings.`);
+    }
+    lines.push("");
+  }
+  if (report.aiSummary) {
+    lines.push("## AI Summary", "", sanitizeMarkdownBlockText(report.aiSummary), "");
+  }
+  return lines.join("\n");
+}
+function formatFindingRow(finding) {
+  return [
+    finding.severity.toUpperCase(),
+    formatInlineCode(finding.id),
+    formatFiles(finding.files),
+    sanitizeTableText(finding.suggestion)
+  ].join(" | ").replace(/^/, "| ").replace(/$/, " |");
+}
+function formatFiles(files) {
+  if (files.length === 0) return "-";
+  return files.map((file) => formatInlineCode(file)).join(", ");
+}
+function formatInlineCode(value) {
+  const sanitized = sanitizeTableText(value);
+  if (sanitized.includes("\\`")) return sanitized;
+  return `\`${sanitized}\``;
+}
+function sanitizeTableText(value) {
+  return sanitizeMarkdownText(value).replaceAll("|", "\\|");
+}
+function sanitizeMarkdownText(value) {
+  return value.replaceAll(/[\r\n]+/g, " ").replaceAll("`", "\\`").replaceAll("!", "\\!").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+function sanitizeMarkdownBlockText(value) {
+  return sanitizeMarkdownText(value).replace(
+    /^(\s*)((?:#{1,6}|[-*+>])(?=\s)|\d+\.(?=\s)|-{3,}(?=\s|$))/,
+    "$1\\$2"
+  );
+}
+
 // src/ai/explain.ts
 var defaultTimeoutMs = 1e4;
 async function maybeExplainWithAi(options) {
@@ -7699,11 +7768,11 @@ function renderJson(report) {
 }
 
 // src/reporters/markdown.ts
-var productName = "ReleaseGuard AI";
+var productName2 = "ReleaseGuard AI";
 function renderMarkdown(report) {
-  const lines = [`# ${productName}: ${report.verdict.toUpperCase()}`, ""];
+  const lines = [`# ${productName2}: ${report.verdict.toUpperCase()}`, ""];
   if (report.aiSummary) {
-    lines.push("## AI Summary", "", sanitizeMarkdownBlockText(report.aiSummary), "");
+    lines.push("## AI Summary", "", sanitizeMarkdownBlockText2(report.aiSummary), "");
   }
   if (report.findings.length === 0) {
     lines.push("No release risks detected.", "");
@@ -7717,24 +7786,24 @@ function renderMarkdown(report) {
 }
 function formatFinding(finding) {
   return [
-    `### ${finding.severity.toUpperCase()}: ${sanitizeMarkdownText(finding.title)}`,
+    `### ${finding.severity.toUpperCase()}: ${sanitizeMarkdownText2(finding.title)}`,
     "",
-    `- Rule: ${formatInlineCode(finding.id)}`,
-    `- Files: ${finding.files.map((file) => formatInlineCode(file)).join(", ")}`,
-    `- Reason: ${sanitizeMarkdownText(finding.message)}`,
-    `- Suggestion: ${sanitizeMarkdownText(finding.suggestion)}`
+    `- Rule: ${formatInlineCode2(finding.id)}`,
+    `- Files: ${finding.files.map((file) => formatInlineCode2(file)).join(", ")}`,
+    `- Reason: ${sanitizeMarkdownText2(finding.message)}`,
+    `- Suggestion: ${sanitizeMarkdownText2(finding.suggestion)}`
   ].join("\n");
 }
-function formatInlineCode(value) {
-  const sanitized = sanitizeMarkdownText(value);
+function formatInlineCode2(value) {
+  const sanitized = sanitizeMarkdownText2(value);
   if (sanitized.includes("\\`")) return sanitized;
   return `\`${sanitized}\``;
 }
-function sanitizeMarkdownText(value) {
+function sanitizeMarkdownText2(value) {
   return value.replaceAll(/[\r\n]+/g, " ").replaceAll("`", "\\`").replaceAll("!", "\\!").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
-function sanitizeMarkdownBlockText(value) {
-  return sanitizeMarkdownText(value).replace(
+function sanitizeMarkdownBlockText2(value) {
+  return sanitizeMarkdownText2(value).replace(
     /^(\s*)((?:#{1,6}|[-*+>])(?=\s)|\d+\.(?=\s)|-{3,}(?=\s|$))/,
     "$1\\$2"
   );
@@ -7742,11 +7811,11 @@ function sanitizeMarkdownBlockText(value) {
 
 // src/reporters/terminal.ts
 var import_picocolors = __toESM(require_picocolors(), 1);
-var productName2 = "ReleaseGuard AI";
+var productName3 = "ReleaseGuard AI";
 function renderTerminal(report, options = {}) {
   const color = options.color ?? true;
   const paint = color ? colorFor(report.verdict) : (value) => value;
-  const lines = [paint(`${productName2}: ${report.verdict.toUpperCase()}`), ""];
+  const lines = [paint(`${productName3}: ${report.verdict.toUpperCase()}`), ""];
   if (report.aiSummary) {
     lines.push("AI Summary", sanitizeTerminalText(report.aiSummary), "");
   }
@@ -8163,10 +8232,19 @@ async function runAction(options = {}) {
     format: "markdown",
     ai
   });
-  if (env.GITHUB_STEP_SUMMARY) {
-    await appendFile(env.GITHUB_STEP_SUMMARY, result.rendered);
-  }
+  if (env.GITHUB_STEP_SUMMARY) await appendFile(env.GITHUB_STEP_SUMMARY, renderActionSummary(result.report));
+  if (env.GITHUB_OUTPUT) await appendFile(env.GITHUB_OUTPUT, renderActionOutputs(result.report));
   return result.exitCode;
+}
+function renderActionOutputs(report) {
+  const counts = summarizeFindings(report);
+  return [
+    `verdict=${report.verdict}`,
+    `findings-count=${counts.findingsCount}`,
+    `fail-count=${counts.failCount}`,
+    `warn-count=${counts.warnCount}`,
+    ""
+  ].join("\n");
 }
 function isDirectRun(argv, importMetaUrl) {
   return argv[1] !== void 0 && fileURLToPath(importMetaUrl) === resolve(argv[1]);

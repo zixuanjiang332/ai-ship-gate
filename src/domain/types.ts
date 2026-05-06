@@ -18,6 +18,11 @@ export interface ChangedFile {
   patch: string;
 }
 
+export interface ReviewAnchor {
+  file: string;
+  line: number;
+}
+
 export interface ProjectMetadata {
   hasPackageJson: boolean;
   hasPackageLock: boolean;

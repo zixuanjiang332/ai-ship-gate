@@ -37,10 +37,17 @@ npm publish --access public
 For pre-v1 releases, create a matching tag after npm publish succeeds:
 
 ```sh
-gh release create v0.4.0 --target main --title "ReleaseGuard AI v0.4.0" --prerelease
+gh release create v0.5.0 --target main --title "ReleaseGuard AI v0.5.0" --prerelease
 ```
 
 Use the exact package version for the tag name so npm, GitHub Actions, and release notes stay aligned.
+
+For the `0.5.0` line, confirm the README and Action example document both:
+
+- `pr-comment: on-failure`
+- `review-comments: smart`
+
+Also confirm inline review comments still remain opt-in and that the Action only publishes them when an exact diff anchor exists.
 
 ## GitHub Action Tag
 

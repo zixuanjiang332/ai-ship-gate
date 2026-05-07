@@ -15,6 +15,10 @@ export interface ChangedFile {
     status: "added" | "modified" | "deleted" | "renamed" | "unknown";
     patch: string;
 }
+export interface ReviewAnchor {
+    file: string;
+    line: number;
+}
 export interface ProjectMetadata {
     hasPackageJson: boolean;
     hasPackageLock: boolean;
@@ -67,6 +71,7 @@ export interface CheckOptions {
     write?: (output: string) => void;
 }
 export interface CheckResult {
+    context: GateContext;
     report: GateReport;
     rendered: string;
     exitCode: number;

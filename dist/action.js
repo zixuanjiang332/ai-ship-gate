@@ -7416,6 +7416,179 @@ import { appendFile, readFile as readFile2 } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// src/project/classify.ts
+var sourcePrefixes = ["src/", "app/", "lib/", "server/", "packages/"];
+var testPattern = /(^|\/)(__tests__|tests?)\/|(\.|-)(test|spec)\.[cm]?[jt]sx?$/i;
+var dependencyManifests = /* @__PURE__ */ new Set([
+  "package.json",
+  "requirements.txt",
+  "pyproject.toml",
+  "go.mod",
+  "Cargo.toml",
+  "pom.xml"
+]);
+var dependencyManifestNames = [...dependencyManifests];
+var lockfiles = /* @__PURE__ */ new Set([
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  "yarn.lock",
+  "poetry.lock",
+  "uv.lock",
+  "go.sum",
+  "Cargo.lock"
+]);
+var lockfileNames = [...lockfiles];
+var envExamples = /* @__PURE__ */ new Set([".env.example", ".env.sample", "env.example"]);
+var securityTerms = [
+  "auth",
+  "permission",
+  "permissions",
+  "role",
+  "roles",
+  "payment",
+  "stripe",
+  "crypto",
+  "cors",
+  "sql",
+  "query",
+  "upload",
+  "token",
+  "session"
+];
+function normalize(path) {
+  return path.replaceAll("\\", "/");
+}
+function isSourcePath(path) {
+  const normalized = normalize(path);
+  return sourcePrefixes.some((prefix) => normalized.startsWith(prefix)) && !isTestPath(normalized);
+}
+function isTestPath(path) {
+  return testPattern.test(normalize(path));
+}
+function isDependencyManifest(path) {
+  const normalized = normalize(path);
+  return dependencyManifests.has(normalized) || dependencyManifestNames.some((manifest) => normalized.endsWith(`/${manifest}`));
+}
+function isEnvExamplePath(path) {
+  const normalized = normalize(path);
+  return envExamples.has(normalized) || normalized.endsWith("/.env.example") || normalized.endsWith("/.env.sample");
+}
+function isCiOrDeployPath(path) {
+  const normalized = normalize(path);
+  return normalized.startsWith(".github/workflows/") || normalized === "Dockerfile" || normalized.endsWith("/Dockerfile") || normalized === "docker-compose.yml" || normalized === "docker-compose.yaml" || normalized.startsWith("deploy/") || normalized.startsWith("deployment/") || normalized.includes("/deploy/") || normalized.includes("/deployment/");
+}
+function patchAddsEnvUsage(patch) {
+  return addedLines(patch).some(
+    (line) => /(process\.env\.[A-Z0-9_]+|process\.env\[['"][A-Z0-9_]+['"]\]|import\.meta\.env\.[A-Z0-9_]+|os\.environ\[['"][A-Z0-9_]+['"]\]|getenv\(['"][A-Z0-9_]+['"]\))/.test(
+      line
+    )
+  );
+}
+function patchContainsSecret(patch) {
+  return addedLines(patch).some(
+    (line) => /\b[A-Z0-9_-]*(?:api[_-]?key|secret|token|password|access[_-]?key)[A-Z0-9_-]*\s*[:=]\s*['"]?[A-Za-z0-9_./+=-]{16,}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9_]{30,}|AKIA[0-9A-Z]{16}/i.test(
+      line
+    )
+  );
+}
+function touchesSecuritySensitiveArea(path, patch) {
+  if (isWorkflowPath(path)) {
+    return workflowPatchHasElevatedSecurityRisk(patch);
+  }
+  const haystack = `${normalize(path)}
+${patch}`.toLowerCase();
+  return securityTerms.some((term) => haystack.includes(term));
+}
+function isWorkflowPath(path) {
+  return normalize(path).startsWith(".github/workflows/");
+}
+function workflowPatchHasElevatedSecurityRisk(patch) {
+  const added = addedLines(patch).join("\n").toLowerCase();
+  return /\bpull_request_target\b/.test(added) || /\bworkflow_run\b/.test(added) || /\brepository_dispatch\b/.test(added) || /\bid-token\s*:\s*write\b/.test(added) || /\bactions\s*:\s*write\b/.test(added) || /\bsecurity-events\s*:\s*write\b/.test(added) || /\bpackages\s*:\s*write\b/.test(added) || /\bsecrets\s*:\s*inherit\b/.test(added) || /\bpersist-credentials\s*:\s*true\b/.test(added);
+}
+function addedLines(patch) {
+  return patch.split(/\r?\n/).filter((line) => line.startsWith("+") && !line.startsWith("+++"));
+}
+
+// src/action/diffAnchors.ts
+var supportedReviewAnchorIds = /* @__PURE__ */ new Set([
+  "security.secret-in-diff",
+  "dependencies.lockfile-not-updated",
+  "env.example-not-updated",
+  "tests.missing-related-tests"
+]);
+function resolveReviewAnchor(finding, changedFiles) {
+  if (!supportedReviewAnchorIds.has(finding.id)) {
+    return void 0;
+  }
+  for (const changedFile of changedFiles) {
+    if (!hasFindingFile(finding, changedFile.path) || !changedFile.patch) {
+      continue;
+    }
+    const anchor = resolveAnchorInFile(finding, changedFile);
+    if (anchor) {
+      return anchor;
+    }
+  }
+  return void 0;
+}
+function resolveAnchorInFile(finding, changedFile) {
+  if (finding.id === "tests.missing-related-tests") {
+    return toAnchor(changedFile.path, firstAddedLine(changedFile.patch));
+  }
+  if (finding.id === "dependencies.lockfile-not-updated" && isDependencyManifest(changedFile.path)) {
+    return toAnchor(changedFile.path, firstAddedLine(changedFile.patch));
+  }
+  if (finding.id === "env.example-not-updated") {
+    return toAnchor(changedFile.path, firstMatchingAddedLine(changedFile.patch, (line) => patchAddsEnvUsage(`${line}
+`)));
+  }
+  if (finding.id === "security.secret-in-diff") {
+    return toAnchor(changedFile.path, firstMatchingAddedLine(changedFile.patch, (line) => patchContainsSecret(`${line}
+`)));
+  }
+  return void 0;
+}
+function firstAddedLine(patch) {
+  return addedLinesWithNumbers(patch)[0];
+}
+function firstMatchingAddedLine(patch, predicate) {
+  return addedLinesWithNumbers(patch).find((line) => predicate(line.content));
+}
+function addedLinesWithNumbers(patch) {
+  const addedLines2 = [];
+  let newLineNumber = 0;
+  for (const patchLine of patch.split(/\r?\n/)) {
+    const hunkMatch = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(patchLine);
+    if (hunkMatch) {
+      newLineNumber = Number(hunkMatch[1]);
+      continue;
+    }
+    if (patchLine.startsWith("+") && !patchLine.startsWith("+++")) {
+      addedLines2.push({ content: patchLine, line: newLineNumber });
+      newLineNumber += 1;
+      continue;
+    }
+    if (!patchLine.startsWith("-")) {
+      newLineNumber += 1;
+    }
+  }
+  return addedLines2;
+}
+function hasFindingFile(finding, path) {
+  const normalizedPath = normalizePath(path);
+  return finding.files.some((file) => normalizePath(file) === normalizedPath);
+}
+function normalizePath(path) {
+  return path.replaceAll("\\", "/");
+}
+function toAnchor(file, addedLine) {
+  if (!addedLine) {
+    return void 0;
+  }
+  return { file, line: addedLine.line };
+}
+
 // src/action/prComment.ts
 var releaseGuardCommentMarker = "<!-- releaseguard-ai-comment -->";
 async function upsertPullRequestComment(target, fetchImpl = fetch) {
@@ -7462,6 +7635,69 @@ async function request(url, init, fetchImpl) {
   return response.json();
 }
 function jsonHeaders(token) {
+  return {
+    authorization: `Bearer ${token}`,
+    accept: "application/vnd.github+json",
+    "content-type": "application/json",
+    "user-agent": "releaseguard-ai"
+  };
+}
+
+// src/action/reviewComments.ts
+async function publishReviewComments(target, comments, fetchImpl = fetch) {
+  const existingComments = await listReviewComments(target, fetchImpl);
+  for (const comment of comments) {
+    if (existingComments.some((existingComment) => existingComment.body.includes(markerIdentity(comment.body)))) {
+      continue;
+    }
+    await request2(
+      `https://api.github.com/repos/${target.owner}/${target.repo}/pulls/${target.pullNumber}/comments`,
+      {
+        method: "POST",
+        headers: jsonHeaders2(target.token),
+        body: JSON.stringify({
+          body: comment.body,
+          commit_id: target.commitId,
+          path: comment.file,
+          line: comment.line,
+          side: "RIGHT"
+        })
+      },
+      fetchImpl
+    );
+  }
+}
+async function listReviewComments(target, fetchImpl) {
+  const comments = [];
+  for (let page = 1; ; page += 1) {
+    const pageComments = await request2(
+      `https://api.github.com/repos/${target.owner}/${target.repo}/pulls/${target.pullNumber}/comments?per_page=100&page=${page}`,
+      {
+        method: "GET",
+        headers: jsonHeaders2(target.token)
+      },
+      fetchImpl
+    );
+    comments.push(...pageComments);
+    if (pageComments.length < 100) {
+      return comments;
+    }
+  }
+}
+function markerIdentity(body) {
+  return body.split("\n").find((line) => line.includes("releaseguard-ai-review-comment")) ?? body;
+}
+async function request2(url, init, fetchImpl) {
+  const response = await fetchImpl(url, init);
+  if (!response.ok) {
+    throw new Error(`GitHub review comment request failed: ${response.status} ${response.statusText}`);
+  }
+  if (response.status === 204) {
+    return void 0;
+  }
+  return response.json();
+}
+function jsonHeaders2(token) {
   return {
     authorization: `Bearer ${token}`,
     accept: "application/vnd.github+json",
@@ -7600,6 +7836,27 @@ function sanitizeMarkdownBlockText2(value) {
     /^(\s*)((?:#{1,6}|[-*+>])(?=\s)|\d+\.(?=\s)|-{3,}(?=\s|$))/,
     "$1\\$2"
   );
+}
+
+// src/reporters/reviewComment.ts
+var reviewCommentMarkerPrefix = "<!-- releaseguard-ai-review-comment";
+function renderReviewComment(finding, anchor) {
+  return [
+    `ReleaseGuard AI: ${sanitizeLine(finding.message)}`,
+    "",
+    `Rule: ${formatInlineCode3(finding.id)}`,
+    `Suggestion: ${sanitizeLine(finding.suggestion)}`,
+    `${reviewCommentMarkerPrefix} rule=${sanitizeAttr(finding.id)} file=${sanitizeAttr(anchor.file)} anchor=${anchor.line} -->`
+  ].join("\n");
+}
+function formatInlineCode3(value) {
+  return `\`${sanitizeLine(value)}\``;
+}
+function sanitizeAttr(value) {
+  return value.replaceAll(/\s+/g, "_").replaceAll("--", "-");
+}
+function sanitizeLine(value) {
+  return value.replaceAll(/[\r\n]+/g, " ").replaceAll("`", "\\`").replaceAll("!", "\\!").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 // src/ai/explain.ts
@@ -7905,13 +8162,13 @@ function formatFinding(finding) {
   return [
     `### ${finding.severity.toUpperCase()}: ${sanitizeMarkdownText3(finding.title)}`,
     "",
-    `- Rule: ${formatInlineCode3(finding.id)}`,
-    `- Files: ${finding.files.map((file) => formatInlineCode3(file)).join(", ")}`,
+    `- Rule: ${formatInlineCode4(finding.id)}`,
+    `- Files: ${finding.files.map((file) => formatInlineCode4(file)).join(", ")}`,
     `- Reason: ${sanitizeMarkdownText3(finding.message)}`,
     `- Suggestion: ${sanitizeMarkdownText3(finding.suggestion)}`
   ].join("\n");
 }
-function formatInlineCode3(value) {
+function formatInlineCode4(value) {
   const sanitized = sanitizeMarkdownText3(value);
   if (sanitized.includes("\\`")) return sanitized;
   return `\`${sanitized}\``;
@@ -8056,100 +8313,6 @@ function runRules(context, rules) {
   return rules.flatMap((rule) => rule.run(context));
 }
 
-// src/project/classify.ts
-var sourcePrefixes = ["src/", "app/", "lib/", "server/", "packages/"];
-var testPattern = /(^|\/)(__tests__|tests?)\/|(\.|-)(test|spec)\.[cm]?[jt]sx?$/i;
-var dependencyManifests = /* @__PURE__ */ new Set([
-  "package.json",
-  "requirements.txt",
-  "pyproject.toml",
-  "go.mod",
-  "Cargo.toml",
-  "pom.xml"
-]);
-var dependencyManifestNames = [...dependencyManifests];
-var lockfiles = /* @__PURE__ */ new Set([
-  "package-lock.json",
-  "pnpm-lock.yaml",
-  "yarn.lock",
-  "poetry.lock",
-  "uv.lock",
-  "go.sum",
-  "Cargo.lock"
-]);
-var lockfileNames = [...lockfiles];
-var envExamples = /* @__PURE__ */ new Set([".env.example", ".env.sample", "env.example"]);
-var securityTerms = [
-  "auth",
-  "permission",
-  "permissions",
-  "role",
-  "roles",
-  "payment",
-  "stripe",
-  "crypto",
-  "cors",
-  "sql",
-  "query",
-  "upload",
-  "token",
-  "session"
-];
-function normalize(path) {
-  return path.replaceAll("\\", "/");
-}
-function isSourcePath(path) {
-  const normalized = normalize(path);
-  return sourcePrefixes.some((prefix) => normalized.startsWith(prefix)) && !isTestPath(normalized);
-}
-function isTestPath(path) {
-  return testPattern.test(normalize(path));
-}
-function isDependencyManifest(path) {
-  const normalized = normalize(path);
-  return dependencyManifests.has(normalized) || dependencyManifestNames.some((manifest) => normalized.endsWith(`/${manifest}`));
-}
-function isEnvExamplePath(path) {
-  const normalized = normalize(path);
-  return envExamples.has(normalized) || normalized.endsWith("/.env.example") || normalized.endsWith("/.env.sample");
-}
-function isCiOrDeployPath(path) {
-  const normalized = normalize(path);
-  return normalized.startsWith(".github/workflows/") || normalized === "Dockerfile" || normalized.endsWith("/Dockerfile") || normalized === "docker-compose.yml" || normalized === "docker-compose.yaml" || normalized.startsWith("deploy/") || normalized.startsWith("deployment/") || normalized.includes("/deploy/") || normalized.includes("/deployment/");
-}
-function patchAddsEnvUsage(patch) {
-  return addedLines(patch).some(
-    (line) => /(process\.env\.[A-Z0-9_]+|process\.env\[['"][A-Z0-9_]+['"]\]|import\.meta\.env\.[A-Z0-9_]+|os\.environ\[['"][A-Z0-9_]+['"]\]|getenv\(['"][A-Z0-9_]+['"]\))/.test(
-      line
-    )
-  );
-}
-function patchContainsSecret(patch) {
-  return addedLines(patch).some(
-    (line) => /\b[A-Z0-9_-]*(?:api[_-]?key|secret|token|password|access[_-]?key)[A-Z0-9_-]*\s*[:=]\s*['"]?[A-Za-z0-9_./+=-]{16,}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9_]{30,}|AKIA[0-9A-Z]{16}/i.test(
-      line
-    )
-  );
-}
-function touchesSecuritySensitiveArea(path, patch) {
-  if (isWorkflowPath(path)) {
-    return workflowPatchHasElevatedSecurityRisk(patch);
-  }
-  const haystack = `${normalize(path)}
-${patch}`.toLowerCase();
-  return securityTerms.some((term) => haystack.includes(term));
-}
-function isWorkflowPath(path) {
-  return normalize(path).startsWith(".github/workflows/");
-}
-function workflowPatchHasElevatedSecurityRisk(patch) {
-  const added = addedLines(patch).join("\n").toLowerCase();
-  return /\bpull_request_target\b/.test(added) || /\bworkflow_run\b/.test(added) || /\brepository_dispatch\b/.test(added) || /\bid-token\s*:\s*write\b/.test(added) || /\bactions\s*:\s*write\b/.test(added) || /\bsecurity-events\s*:\s*write\b/.test(added) || /\bpackages\s*:\s*write\b/.test(added) || /\bsecrets\s*:\s*inherit\b/.test(added) || /\bpersist-credentials\s*:\s*true\b/.test(added);
-}
-function addedLines(patch) {
-  return patch.split(/\r?\n/).filter((line) => line.startsWith("+") && !line.startsWith("+++"));
-}
-
 // src/rules/ciDeploy.ts
 var ciRiskRule = {
   id: "ci.risk",
@@ -8203,7 +8366,7 @@ var dependencyRiskRule = {
   run(context) {
     const findings = [];
     const manifests = context.changedFiles.filter((file) => isDependencyManifest(file.path));
-    const changedPaths = new Set(context.changedFiles.map((file) => normalizePath(file.path)));
+    const changedPaths = new Set(context.changedFiles.map((file) => normalizePath2(file.path)));
     const manifestsWithoutLockfiles = manifests.filter((file) => !hasMatchingLockfile(file.path, changedPaths));
     if (manifestsWithoutLockfiles.length > 0) {
       findings.push({
@@ -8232,7 +8395,7 @@ var dependencyRiskRule = {
   }
 };
 function hasMatchingLockfile(manifestPath, changedPaths) {
-  const normalized = normalizePath(manifestPath);
+  const normalized = normalizePath2(manifestPath);
   const directory = normalized.includes("/") ? normalized.slice(0, normalized.lastIndexOf("/") + 1) : "";
   const filename = normalized.slice(directory.length);
   return matchingLockfileNames(filename).some((lockfile) => changedPaths.has(`${directory}${lockfile}`));
@@ -8251,7 +8414,7 @@ function matchingLockfileNames(manifestName) {
       return [];
   }
 }
-function normalizePath(path) {
+function normalizePath2(path) {
   return path.replaceAll("\\", "/");
 }
 
@@ -8418,6 +8581,7 @@ async function runCheck(options) {
   const write = options.write ?? ((output) => process.stdout.write(output));
   write(rendered);
   return {
+    context,
     report,
     rendered,
     exitCode: shouldExitWithFailure(verdict, config.failOn) ? 1 : 0
@@ -8432,10 +8596,14 @@ async function runAction(options = {}) {
   const env = options.env ?? process.env;
   const runCheck2 = options.runCheck ?? runCheck;
   const publishPrComment = options.publishPrComment ?? publishPullRequestComment;
+  const publishReviewComments2 = options.publishReviewComments ?? publishReviewComments;
   const cwd = env.GITHUB_WORKSPACE ?? process.cwd();
   const base = env.INPUT_BASE || void 0;
   const ai = env.INPUT_AI?.trim().toLowerCase() === "true";
   const prCommentMode = normalizePrCommentMode(env.INPUT_PR_COMMENT ?? env["INPUT_PR-COMMENT"]);
+  const reviewCommentsMode = normalizeReviewCommentsMode(
+    env.INPUT_REVIEW_COMMENTS ?? env["INPUT_REVIEW-COMMENTS"]
+  );
   const result = await runCheck2({
     cwd,
     base,
@@ -8459,6 +8627,34 @@ async function runAction(options = {}) {
       );
     }
   }
+  if (shouldPublishReviewComments(reviewCommentsMode, env.GITHUB_EVENT_NAME)) {
+    const target = await readPullRequestReviewTarget(env);
+    if (target) {
+      const comments = selectReviewCommentFindings(reviewCommentsMode, result.report.findings).map((finding) => {
+        const anchor = resolveReviewAnchor(finding, result.context.changedFiles);
+        if (!anchor) return void 0;
+        return {
+          body: renderReviewComment(finding, anchor),
+          file: anchor.file,
+          line: anchor.line
+        };
+      }).filter((comment) => Boolean(comment));
+      if (comments.length > 0) {
+        try {
+          await publishReviewComments2(
+            {
+              ...target,
+              token: env.GITHUB_TOKEN ?? ""
+            },
+            comments
+          );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error(`ReleaseGuard inline review comments failed: ${message}`);
+        }
+      }
+    }
+  }
   return result.exitCode;
 }
 function renderActionOutputs(report) {
@@ -8472,13 +8668,27 @@ function renderActionOutputs(report) {
   ].join("\n");
 }
 async function readPullRequestTarget(env) {
-  if (!env.GITHUB_EVENT_PATH || !env.GITHUB_TOKEN) return void 0;
-  const event = JSON.parse(await readFile2(env.GITHUB_EVENT_PATH, "utf8"));
+  const event = await readPullRequestEvent(env);
+  if (!event) return void 0;
   const issueNumber = event.pull_request?.number;
   const owner = event.repository?.owner?.login;
   const repo = event.repository?.name;
   if (!issueNumber || !owner || !repo) return void 0;
   return { owner, repo, issueNumber };
+}
+async function readPullRequestReviewTarget(env) {
+  const event = await readPullRequestEvent(env);
+  if (!event) return void 0;
+  const pullNumber = event.pull_request?.number;
+  const commitId = event.pull_request?.head?.sha;
+  const owner = event.repository?.owner?.login;
+  const repo = event.repository?.name;
+  if (!pullNumber || !commitId || !owner || !repo) return void 0;
+  return { owner, repo, pullNumber, commitId };
+}
+async function readPullRequestEvent(env) {
+  if (!env.GITHUB_EVENT_PATH || !env.GITHUB_TOKEN) return void 0;
+  return JSON.parse(await readFile2(env.GITHUB_EVENT_PATH, "utf8"));
 }
 function shouldPublishPrComment(mode, eventName, verdict) {
   if (eventName !== "pull_request") return false;
@@ -8486,10 +8696,34 @@ function shouldPublishPrComment(mode, eventName, verdict) {
   if (mode === "always") return true;
   return verdict === "fail";
 }
+function shouldPublishReviewComments(mode, eventName) {
+  return eventName === "pull_request" && mode !== "off";
+}
 function normalizePrCommentMode(value) {
   const normalized = value?.trim().toLowerCase();
   if (normalized === "always" || normalized === "on-failure") return normalized;
   return "off";
+}
+function normalizeReviewCommentsMode(value) {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === "always" || normalized === "fail-only" || normalized === "smart") {
+    return normalized;
+  }
+  return "off";
+}
+function selectReviewCommentFindings(mode, findings) {
+  const smartAllowlist = /* @__PURE__ */ new Set([
+    "security.secret-in-diff",
+    "dependencies.lockfile-not-updated",
+    "env.example-not-updated",
+    "tests.missing-related-tests"
+  ]);
+  if (mode === "always") return findings;
+  if (mode === "fail-only") return findings.filter((finding) => finding.severity === "fail");
+  if (mode === "smart") {
+    return findings.filter((finding) => finding.severity === "fail" || smartAllowlist.has(finding.id));
+  }
+  return [];
 }
 async function publishPullRequestComment(target, report) {
   await upsertPullRequestComment({

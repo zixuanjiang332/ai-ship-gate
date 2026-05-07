@@ -29,6 +29,7 @@ export async function runCheck(options: CheckOptions): Promise<CheckResult> {
   write(rendered);
 
   return {
+    context,
     report,
     rendered,
     exitCode: shouldExitWithFailure(verdict, config.failOn) ? 1 : 0,

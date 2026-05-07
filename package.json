@@ -1,6 +1,6 @@
 {
   "name": "releaseguard-ai",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "A deterministic PR diff release gate for AI-generated code.",
   "license": "MIT",
   "type": "module",
@@ -27,7 +27,8 @@
     "releaseguard.config.example.yaml"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && esbuild src/action.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/action.js --sourcemap --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" && node scripts/normalize-action-sourcemap.mjs dist/action.js.map",
+    "build": "tsc -p tsconfig.json && esbuild src/action.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/action.js --sourcemap --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" && node scripts/normalize-action-sourcemap.mjs dist/action.js.map && node scripts/build-console.mjs",
+    "console": "node dist/cli.js console",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit"

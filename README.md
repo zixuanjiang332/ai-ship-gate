@@ -5,7 +5,7 @@
 [![CI](https://github.com/zixuanjiang332/releaseguard-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/zixuanjiang332/releaseguard-ai/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/releaseguard-ai.svg)](https://www.npmjs.com/package/releaseguard-ai)
 [![Release](https://img.shields.io/github/v/release/zixuanjiang332/releaseguard-ai?include_prereleases&label=release)](https://github.com/zixuanjiang332/releaseguard-ai/releases)
-[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-v0.5.0-38bdf8)](action.yml)
+[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-v0.6.0-38bdf8)](action.yml)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-4ade80.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-pre--v1-f59e0b)](docs/release.md)
@@ -65,6 +65,19 @@ node dist/cli.js init
 ```
 
 `releaseguard init`, `npx releaseguard-ai init`, and `node dist/cli.js init` write `releaseguard.config.yaml`. They fail if that file already exists, so existing configuration is not overwritten.
+
+## Local Console
+
+Start the local browser console after building the project:
+
+```sh
+npm run build
+npm run console
+```
+
+If you installed the package globally or want a one-off run, you can also use `releaseguard console` or `npx releaseguard-ai console`.
+
+The command prints a localhost URL for the dashboard. The console opens with a polished demo report first, then lets you run the same checks against a local repository path with UI controls for `base`, `failOn`, and the core rule groups.
 
 ## Example Output
 
@@ -131,7 +144,7 @@ jobs:
         with:
           fetch-depth: 0
       - id: releaseguard
-        uses: zixuanjiang332/releaseguard-ai@v0.5.0
+        uses: zixuanjiang332/releaseguard-ai@v0.6.0
         with:
           base: origin/main
           ai: false
@@ -145,7 +158,7 @@ jobs:
         run: echo "ReleaseGuard verdict: ${{ steps.releaseguard.outputs.verdict }}"
 ```
 
-Use `@v0.5.0` for reproducible pre-v1 runs. Use `@main` only when intentionally testing the latest repository state. Switch to `@v1` after the first stable release tag exists. See [docs/release.md](docs/release.md).
+Use `@v0.6.0` for reproducible pre-v1 runs. Use `@main` only when intentionally testing the latest repository state. Switch to `@v1` after the first stable release tag exists. See [docs/release.md](docs/release.md).
 
 The Action writes a GitHub job summary with the final verdict, finding counts, and top findings table. It also exposes outputs for later workflow steps:
 
@@ -264,6 +277,6 @@ ReleaseGuard AI compares git refs. Full history makes base refs such as `origin/
 
 ## Release Status
 
-ReleaseGuard AI is currently pre-v1. The CLI is published on npm as `releaseguard-ai`, and this release line targets `v0.5.0`; stable `v1` tag creation and Marketplace publishing are separate release steps.
+ReleaseGuard AI is currently pre-v1. The CLI is published on npm as `releaseguard-ai`, and this release line targets `v0.6.0`; stable `v1` tag creation and Marketplace publishing are separate release steps.
 
 See [docs/release.md](docs/release.md) for the release checklist.

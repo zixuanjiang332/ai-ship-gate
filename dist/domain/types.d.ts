@@ -64,6 +64,10 @@ export interface CheckOptions {
     base?: string;
     format: OutputFormat;
     ai: boolean;
+    configOverride?: {
+        failOn?: FailOn;
+        checks?: Partial<ReleaseGuardConfig["checks"]>;
+    };
     collectContext?: (options: {
         cwd: string;
         base?: string;

@@ -8,7 +8,8 @@ import { defaultRules } from "./rules/index.js";
 export async function runCheck(options) {
     const collectContext = options.collectContext ?? collectGitContext;
     const context = await collectContext({ cwd: options.cwd, base: options.base });
-    const config = await loadConfig(context.repoRoot);
+    const loadedConfig = await loadConfig(context.repoRoot);
+    const config = applyConfigOverride(loadedConfig, options.configOverride);
     const enabledRules = defaultRules.filter((rule) => isRuleEnabled(rule.check, config.checks));
     const findings = runRules(context, enabledRules);
     const verdict = aggregateVerdict(findings);
@@ -33,5 +34,18 @@ export async function runCheck(options) {
 }
 function isRuleEnabled(ruleCheck, checks) {
     return checks[ruleCheck];
+}
+function applyConfigOverride(config, override) {
+    if (!override) {
+        return config;
+    }
+    return {
+        ...config,
+        failOn: override.failOn ?? config.failOn,
+        checks: {
+            ...config.checks,
+            ...override.checks,
+        },
+    };
 }
 //# sourceMappingURL=run.js.map

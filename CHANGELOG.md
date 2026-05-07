@@ -2,6 +2,14 @@
 
 All notable changes to ReleaseGuard AI will be documented in this file.
 
+## 0.6.0 - Local Console
+
+### Added
+
+- A local browser console with a demo-first dashboard for ReleaseGuard findings.
+- Local repository run controls for `base`, `failOn`, and the core deterministic checks.
+- Console-specific build output under `dist/console` plus a `releaseguard console` CLI command.
+
 ## 0.4.0 - PR Comment Mode
 
 ### Added

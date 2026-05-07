@@ -108,6 +108,34 @@ describe("runCheck", () => {
     expect(result.report.verdict).toBe("pass");
     expect(result.report.findings).toEqual([]);
   });
+
+  it("applies config overrides for interactive callers", async () => {
+    const repoRoot = await mkdtemp(join(tmpdir(), "releaseguard-config-override-"));
+    await writeFile(join(repoRoot, "releaseguard.config.yaml"), "failOn: fail\nchecks:\n  tests: true\n");
+
+    const collectContext = vi.fn().mockResolvedValue({
+      ...context,
+      repoRoot,
+    });
+
+    const result = await runCheck({
+      cwd: repoRoot,
+      format: "json",
+      ai: false,
+      collectContext,
+      write: vi.fn(),
+      configOverride: {
+        failOn: "warn",
+        checks: {
+          tests: false,
+        },
+      },
+    });
+
+    expect(result.report.verdict).toBe("pass");
+    expect(result.report.findings).toEqual([]);
+    expect(result.exitCode).toBe(0);
+  });
 });
 
 describe("parseOutputFormat", () => {

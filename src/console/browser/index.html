@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ReleaseGuard Local Console</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell" id="app">
+      <header class="masthead">
+        <div class="title-block">
+          <p class="eyebrow">Local Console</p>
+          <h1>ReleaseGuard Local Console</h1>
+          <p class="lede">
+            Start with a review-ready demo, then run the same release desk against a local repository when you want to
+            inspect real work.
+          </p>
+        </div>
+        <div class="header-actions">
+          <button class="ghost-button" id="switch-run" type="button">Run On Local Repo</button>
+          <div class="mode-indicator" id="mode-indicator">Demo data</div>
+        </div>
+      </header>
+
+      <section class="summary-band" id="summary">
+        <div class="summary-status" id="summary-status">Loading demo report…</div>
+        <div class="summary-metrics" id="summary-metrics"></div>
+      </section>
+
+      <section class="run-band" id="run-band" aria-labelledby="run-panel-title" hidden>
+        <div class="section-heading">
+          <h2 id="run-panel-title">Run On Local Repo</h2>
+          <p>Point the console at a local checkout and reuse the same checks shown in the demo.</p>
+        </div>
+
+        <div class="run-grid">
+          <label class="field">
+            <span>Repository Path</span>
+            <input id="repo-path" name="repo-path" type="text" placeholder="C:\\projects\\your-repo" autocomplete="off" />
+          </label>
+
+          <label class="field">
+            <span>Base Ref</span>
+            <input id="base-ref" name="base-ref" type="text" value="origin/main" autocomplete="off" />
+          </label>
+
+          <fieldset class="field fieldset-segment">
+            <legend>Fail On</legend>
+            <div class="segmented">
+              <label><input type="radio" name="fail-on" value="fail" checked /> <span>Fail</span></label>
+              <label><input type="radio" name="fail-on" value="warn" /> <span>Warn</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="checks-fieldset">
+            <legend>Core Checks</legend>
+            <label class="toggle"><input type="checkbox" data-check="tests" checked /> <span>Tests</span></label>
+            <label class="toggle"><input type="checkbox" data-check="dependencies" checked /> <span>Dependencies</span></label>
+            <label class="toggle"><input type="checkbox" data-check="env" checked /> <span>Env</span></label>
+            <label class="toggle"><input type="checkbox" data-check="ci" checked /> <span>CI</span></label>
+            <label class="toggle"><input type="checkbox" data-check="docker" checked /> <span>Docker</span></label>
+            <label class="toggle"><input type="checkbox" data-check="security" checked /> <span>Security</span></label>
+          </fieldset>
+
+          <div class="run-actions">
+            <button class="primary-button" id="run-check" type="button">Run Check</button>
+            <p class="inline-status" id="run-status">Demo ready.</p>
+          </div>
+        </div>
+
+        <p class="run-error" id="run-error" hidden></p>
+      </section>
+
+      <section class="workspace" aria-label="Results workspace">
+        <section class="workspace-pane findings-pane" aria-labelledby="findings-title">
+          <div class="section-heading compact">
+            <h2 id="findings-title">Priority Queue</h2>
+            <p id="finding-count-label">Loading the recommended review order…</p>
+          </div>
+          <div class="findings-list" id="findings"></div>
+        </section>
+
+        <section class="workspace-pane detail-pane" aria-labelledby="detail-title">
+          <div class="section-heading compact">
+            <h2 id="detail-title">Review Workspace</h2>
+            <p id="detail-subtitle">Select a finding to inspect the rule, the reason it matters, and the next move.</p>
+          </div>
+          <div class="detail-content" id="detail"></div>
+        </section>
+
+        <section class="workspace-pane files-pane" aria-labelledby="files-title">
+          <div class="section-heading compact">
+            <h2 id="files-title">Evidence Map</h2>
+            <p>Where the current queue lands in the diff, so reviewers can move from risk to evidence quickly.</p>
+          </div>
+          <div class="file-map" id="file-map"></div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

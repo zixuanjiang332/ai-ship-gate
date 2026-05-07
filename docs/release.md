@@ -17,6 +17,7 @@ npm pack --dry-run
 Confirm:
 
 - `dist/cli.js` is included in the npm package.
+- `dist/console/index.html`, `dist/console/app.js`, and `dist/console/styles.css` are included in the npm package.
 - `dist/action.js` is committed and bundled for GitHub Action users.
 - `action.yml` points to `dist/action.js`.
 - README does not claim unimplemented features.
@@ -37,17 +38,22 @@ npm publish --access public
 For pre-v1 releases, create a matching tag after npm publish succeeds:
 
 ```sh
-gh release create v0.5.0 --target main --title "ReleaseGuard AI v0.5.0" --prerelease
+gh release create v0.6.0 --target main --title "ReleaseGuard AI v0.6.0" --prerelease
 ```
 
 Use the exact package version for the tag name so npm, GitHub Actions, and release notes stay aligned.
 
-For the `0.5.0` line, confirm the README and Action example document both:
+For the `0.6.0` line, confirm the README and Action example document both:
 
 - `pr-comment: on-failure`
 - `review-comments: smart`
 
 Also confirm inline review comments still remain opt-in and that the Action only publishes them when an exact diff anchor exists.
+
+For the next console release, also confirm:
+
+- `releaseguard console` prints a working localhost URL after `npm run build`.
+- The first screen still loads demo data before any local run is attempted.
 
 ## GitHub Action Tag
 

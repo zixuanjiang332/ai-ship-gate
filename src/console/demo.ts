@@ -1,0 +1,102 @@
+import type { ConsoleResult } from "./contracts.js";
+
+export const consoleDemoResult: ConsoleResult = {
+  source: "demo",
+  repoPath: "/demo/acme-api",
+  baseRef: "origin/main",
+  verdict: "fail",
+  findingsCount: 4,
+  affectedFilesCount: 6,
+  counts: {
+    fail: 1,
+    warn: 3,
+    info: 0,
+  },
+  effectiveConfig: {
+    failOn: "fail",
+    checks: {
+      tests: true,
+      dependencies: true,
+      env: true,
+      ci: true,
+      docker: true,
+      security: true,
+    },
+  },
+  files: [
+    {
+      path: "src/config/bootstrap.ts",
+      status: "modified",
+      snippet:
+        "@@ -12,6 +12,8 @@\n+const bootstrapToken = \"sk_live_release_token\";\n export function bootstrap() {\n+  process.env.RELEASE_WINDOW ??= \"friday-2200\";",
+      matchedFindingIds: ["security.secret-in-diff", "env.example-not-updated"],
+    },
+    {
+      path: ".env.production",
+      status: "modified",
+      snippet:
+        "@@ -1,2 +1,3 @@\n API_URL=https://api.acme.dev\n+BOOTSTRAP_TOKEN=sk_live_release_token",
+      matchedFindingIds: ["security.secret-in-diff"],
+    },
+    {
+      path: "src/auth/session.ts",
+      status: "modified",
+      snippet:
+        "@@ -41,6 +41,12 @@\n export async function refreshSession() {\n+  await releaseWindowGate();\n   return rotateSession();",
+      matchedFindingIds: ["tests.missing-related-tests"],
+    },
+    {
+      path: "src/auth/session.test-plan.md",
+      status: "added",
+      snippet: "@@ -0,0 +1,4 @@\n+# Session test plan\n+- refresh flow coverage still pending",
+      matchedFindingIds: ["tests.missing-related-tests"],
+    },
+    {
+      path: "package.json",
+      status: "modified",
+      snippet:
+        "@@ -19,6 +19,7 @@\n   \"dependencies\": {\n+    \"release-transport\": \"^2.4.0\"",
+      matchedFindingIds: ["dependencies.lockfile-not-updated"],
+    },
+    {
+      path: ".env.example",
+      status: "modified",
+      snippet: "@@ -1,3 +1,3 @@\n API_URL=\n-LOG_LEVEL=\n+LOG_LEVEL=",
+      matchedFindingIds: ["env.example-not-updated"],
+    },
+  ],
+  findings: [
+    {
+      id: "security.secret-in-diff",
+      severity: "fail",
+      title: "Secret-like value in diff",
+      message: "A production token was added in a bootstrap helper and would be committed in plain text.",
+      files: ["src/config/bootstrap.ts", ".env.production"],
+      suggestion: "Remove the value from the diff, rotate the token, and load it from a secure runtime secret store.",
+    },
+    {
+      id: "tests.missing-related-tests",
+      severity: "warn",
+      title: "Source changed without related tests",
+      message: "The auth flow changed, but the diff does not include nearby unit or integration coverage.",
+      files: ["src/auth/session.ts", "src/auth/session.test-plan.md"],
+      suggestion: "Add or update tests that exercise the refreshed session lifecycle before merging.",
+    },
+    {
+      id: "dependencies.lockfile-not-updated",
+      severity: "warn",
+      title: "Dependency manifest changed without lockfile",
+      message: "The manifest introduces a new release transport package, but the lockfile still reflects the previous graph.",
+      files: ["package.json"],
+      suggestion: "Refresh the lockfile in the same change so CI and local installs resolve the same dependency set.",
+    },
+    {
+      id: "env.example-not-updated",
+      severity: "warn",
+      title: "New environment variable lacks an example update",
+      message: "The API client now reads RELEASE_WINDOW, but the example environment file does not document it yet.",
+      files: ["src/config/bootstrap.ts", ".env.example"],
+      suggestion: "Document the new variable in .env.example and note the expected format for operators.",
+    },
+  ],
+};

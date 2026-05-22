@@ -1,0 +1,1 @@
+export const releaseguardSelfTest = true;
